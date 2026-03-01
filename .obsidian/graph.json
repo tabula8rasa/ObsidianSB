@@ -1,0 +1,37 @@
+{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:Linux  ",
+      "color": {
+        "a": 1,
+        "rgb": 14701138
+      }
+    },
+    {
+      "query": "Python",
+      "color": {
+        "a": 1,
+        "rgb": 3583263
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": false,
+  "textFadeMultiplier": 0.1,
+  "nodeSizeMultiplier": 1.70931103903367,
+  "lineSizeMultiplier": 2.49848450956269,
+  "collapse-forces": false,
+  "centerStrength": 0.575383066771055,
+  "repelStrength": 12.7245274577788,
+  "linkStrength": 1,
+  "linkDistance": 178,
+  "scale": 0.6616560200318764,
+  "close": true
+}
