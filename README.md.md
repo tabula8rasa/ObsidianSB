@@ -1,0 +1,1 @@
+This is my "second brain" repository at Obsidian, used to sync my knowledge base across all my devices. You can also use it to study materials that interest you.
