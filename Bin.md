@@ -2,3 +2,5 @@
 
 paxos, raft
 https://thesecretlivesofdata.com/raft/
+
+![[Pasted image 20260307001134.png]]
