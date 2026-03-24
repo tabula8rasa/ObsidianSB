@@ -195,5 +195,3 @@ GROUP BY ROLLUP(region, product);
     
 - `GROUPING SETS` — ты сам задаёшь нужные варианты. ([PostgreSQL](https://www.postgresql.org/docs/current/queries-table-expressions.html?utm_source=chatgpt.com "PostgreSQL: Documentation: 18: 7.2. Table Expressions"))
     
-
-Могу сразу дать тебе один готовый `DDL + DML + SELECT` для PostgreSQL, чтобы ты сам прогнал `ROLLUP`, `CUBE` и `GROUPING SETS` в онлайн-редакторе.
