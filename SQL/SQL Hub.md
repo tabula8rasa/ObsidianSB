@@ -1,0 +1,5 @@
+[[Data-modifying CTE (Writeable CTE)]]
+[[EXCLUDE и DEFERRABLE]]
+[[GROUP BY с расширениями ROLLUP, CUBE, GROUPING SETS]]
+[[Lateral JOIN]]
+[[Пользовательские типы данных в PostgreSQL]]
