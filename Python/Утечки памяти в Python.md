@@ -1,100 +1,78 @@
-## 1. Почему в Python вообще бывают утечки памяти
+## 1. Почему в Python возможны утечки памяти
 
-В Python есть автоматическое управление памятью. Обычно объект удаляется, когда на него больше нет ссылок.
-
-Пример:
+В Python объект удаляется, когда на него больше нет ссылок. Обычная ссылка называется **сильной ссылкой**.
 
 ```python
 obj = SomeObject()
-obj = None
 ```
 
-Если ссылок на объект больше нет, сборщик мусора может освободить память.
+Пока существует переменная `obj`, объект живёт.
 
-Но утечка возникает, когда объект **уже не нужен**, но на него всё ещё где-то остаётся ссылка. Тогда Python считает, что объект ещё используется, и не удаляет его.
+Утечка памяти возникает, когда объект уже не нужен, но на него всё ещё остаётся ссылка. Один из частых случаев — **циклические ссылки**.
 
 ---
 
-## 2. Пример простой утечки памяти
+## 2. Циклическая ссылка
+
+Пример:
+
+```text
+Parent → Child
+Child  → Parent
+```
+
+То есть два объекта ссылаются друг на друга.
 
 ```python
-cache = []
+import gc
 
-class User:
+
+class Parent:
     def __init__(self, name):
         self.name = name
+        self.child = None
+
+    def __del__(self):
+        print(f"Parent {self.name} deleted")
 
 
-def create_user():
-    user = User("Ivan")
-    cache.append(user)
+class Child:
+    def __init__(self, name):
+        self.name = name
+        self.parent = None
+
+    def __del__(self):
+        print(f"Child {self.name} deleted")
 
 
-while True:
-    create_user()
+parent = Parent("P1")
+child = Child("C1")
+
+parent.child = child
+child.parent = parent
+
+del parent
+del child
+
+gc.collect()
 ```
 
-Здесь каждый объект `User` добавляется в список `cache`.
+Здесь внешние ссылки удалены, но объекты всё ещё держат друг друга:
 
-Даже если объект больше не нужен программе, ссылка на него остаётся в списке. Поэтому память будет расти.
+```text
+Parent держит Child
+Child держит Parent
+```
+
+Современный Python обычно умеет собирать такие циклы сборщиком мусора, но в реальных программах циклы могут долго жить или создавать проблемы в сложных структурах: GUI, callbacks, observers, графы объектов, замыкания.
 
 ---
 
-## 3. Частая причина: кэш
+## 3. Что такое `weakref`
 
-Например, мы хотим хранить уже созданные объекты:
+`weakref` создаёт **слабую ссылку**.
 
-```python
-cache = {}
-
-class Image:
-    def __init__(self, path):
-        self.path = path
-
-
-def load_image(path):
-    image = Image(path)
-    cache[path] = image
-    return image
-```
-
-Проблема: словарь `cache` держит сильные ссылки на все изображения. Если объектов станет много, память может постоянно расти.
-
----
-
-## 4. Что такое сильная ссылка
-
-Обычная ссылка в Python — сильная ссылка.
-
-```python
-a = SomeObject()
-b = a
-```
-
-Пока существует `a` или `b`, объект не будет удалён.
-
-То же самое со списками и словарями:
-
-```python
-items.append(obj)
-cache[key] = obj
-```
-
-Они тоже удерживают объект в памяти.
-
----
-
-## 5. Что такое слабая ссылка
-
-`weakref` позволяет сослаться на объект, **не мешая его удалению**.
-
-То есть слабая ссылка говорит:
-
-> Я хочу иметь доступ к объекту, если он ещё жив, но не хочу удерживать его в памяти.
-
----
-
-## 6. Пример `weakref.ref`
+Слабая ссылка позволяет обратиться к объекту, если он ещё существует, но не мешает Python удалить этот объект.
 
 ```python
 import weakref
@@ -104,7 +82,6 @@ class User:
 
 
 user = User()
-
 weak_user = weakref.ref(user)
 
 print(weak_user())  # объект User
@@ -114,89 +91,103 @@ del user
 print(weak_user())  # None
 ```
 
-После `del user` объект удаляется, потому что слабая ссылка не удерживает его.
+После удаления `user` объект исчезает, потому что `weak_user` не удерживает его в памяти.
 
 ---
 
-## 7. Решение проблемы кэша через `WeakValueDictionary`
+## 4. Исправление циклической ссылки через `weakref`
 
-Если нужно хранить объекты в кэше, но не удерживать их насильно, можно использовать:
+Обычно родитель владеет ребёнком, а ребёнок только знает родителя.
 
-```python
-import weakref
+Поэтому связь лучше сделать так:
 
-cache = weakref.WeakValueDictionary()
-
-class Image:
-    def __init__(self, path):
-        self.path = path
-
-
-def load_image(path):
-    image = Image(path)
-    cache[path] = image
-    return image
+```text
+Parent → Child
+Child  --weakref--> Parent
 ```
 
-Теперь `cache` хранит слабые ссылки на значения.
-
-Если объект больше нигде не используется, он автоматически исчезнет из кэша.
-
----
-
-## 8. Пример работы
+Код:
 
 ```python
 import weakref
 import gc
 
-class User:
+
+class Parent:
     def __init__(self, name):
         self.name = name
+        self.child = None
+
+    def __del__(self):
+        print(f"Parent {self.name} deleted")
 
 
-cache = weakref.WeakValueDictionary()
+class Child:
+    def __init__(self, name, parent):
+        self.name = name
+        self.parent = weakref.ref(parent)
 
-user = User("Ivan")
-cache["ivan"] = user
+    def get_parent(self):
+        return self.parent()
 
-print(list(cache.keys()))  # ['ivan']
+    def __del__(self):
+        print(f"Child {self.name} deleted")
 
-del user
+
+parent = Parent("P1")
+child = Child("C1", parent)
+
+parent.child = child
+
+print(child.get_parent())  # объект Parent
+
+del parent
 gc.collect()
 
-print(list(cache.keys()))  # []
+print(child.get_parent())  # None
+
+del child
+gc.collect()
 ```
 
-Объект исчез из кэша, потому что на него больше нет сильных ссылок.
-
----
-
-## 9. Когда использовать `weakref`
-
-`weakref` полезен для:
-
-```text
-кэшей
-реестров объектов
-наблюдателей observer pattern
-связей родитель-дочерний объект
-хранения временных объектов
-```
-
-Например, если есть система подписчиков:
+Теперь `Child` хранит слабую ссылку на `Parent`. Он может получить родителя через:
 
 ```python
-class EventBus:
-    def __init__(self):
-        self.listeners = []
+self.parent()
 ```
 
-Если хранить слушателей обычным списком, они могут не удаляться. Лучше использовать слабые ссылки.
+Но если родитель уже удалён, вернётся:
+
+```python
+None
+```
 
 ---
 
-## 10. Важные ограничения
+## 5. Где полезен `weakref`
+
+`weakref` применяют, когда объект нужно “знать”, но не нужно им владеть:
+
+```text
+связь child → parent
+observer pattern
+event listeners
+callbacks
+графы объектов
+кэши
+реестры объектов
+```
+
+Главная идея:
+
+```text
+владелец объекта → strong reference
+обратная ссылка → weak reference
+```
+
+---
+
+## 6. Ограничения
 
 Не все объекты поддерживают слабые ссылки.
 
@@ -206,7 +197,6 @@ class EventBus:
 экземпляры пользовательских классов
 функции
 методы
-некоторые встроенные объекты
 ```
 
 Не поддерживают напрямую:
@@ -219,7 +209,7 @@ dict
 tuple
 ```
 
-Для пользовательских классов с `__slots__` нужно добавить:
+Если в классе используется `__slots__`, нужно добавить:
 
 ```python
 class User:
@@ -228,17 +218,21 @@ class User:
 
 ---
 
-## 11. Главное правило
+## 7. Короткий вывод
 
-Утечка памяти в Python чаще всего означает:
-
-> Где-то осталась сильная ссылка на объект, который уже не нужен.
-
-`weakref` помогает в ситуациях, когда объект нужно отслеживать, но не нужно удерживать в памяти.
-
-Коротко:
+Циклическая ссылка:
 
 ```text
-обычная ссылка = объект живёт
-weakref = объект можно удалить
+A → B → A
 ```
+
+может привести к тому, что объекты живут дольше, чем нужно.
+
+`weakref` позволяет разорвать цикл:
+
+```text
+A → B
+B --weakref--> A
+```
+
+То есть объект может ссылаться на другой объект, но не удерживать его в памяти.
