@@ -1,6 +1,8 @@
 
 Видео-источник: https://www.youtube.com/watch?v=pBASqUbZgkY
 
+![[Pasted image 20260605013352.png|center|600]]
+
 ---
 # Основные типы API
 
