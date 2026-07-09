@@ -20,17 +20,94 @@ Source: "[https://habr.com/ru/companies/avito/articles/1023610/](https://habr.co
 
 ### 1. Создание таблицы-реплики и триггеров
 
-Сначала создаётся таблица-реплика. На исходную таблицу навешиваются триггеры на вставку, обновление и удаление. Они нужны, чтобы все изменения после момента запуска переноса попадали и в исходную таблицу, и в таблицу-реплику.
+![[Pasted image 20260709140715.png]]
+
+Сначала создаётся таблица-реплика. На исходную таблицу навешиваются триггеры на вставку, обновление и удаление. Они нужны, чтобы все изменения после момента **T** запуска переноса попадали и в исходную таблицу, и в таблицу-реплику.
 
 Для вставок и обновлений используется логика upsert: если записи в реплике ещё нет, она вставляется; если запись уже есть, она обновляется через `ON CONFLICT DO UPDATE`.
 
 Для удалений создаётся отдельный триггер, который удаляет соответствующую строку из таблицы-реплики.
 
+``` sql
+-- 1. Пытаемся вставить строку в table_replica, если не получилось - обновляем
+CREATE OR REPLACE FUNCTION upsert_table_replica()
+    RETURNS TRIGGER AS $$
+BEGIN
+    -- Вставка записи в table_replica с обновлением в случае конфликта по id
+    INSERT INTO table_replica (id, field_1, ...)
+    VALUES (NEW.id, NEW.field_1, ...)
+    ON CONFLICT (id)
+        DO UPDATE SET
+        	field_1 = EXCLUDED.field_1,
+		...
+RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Создаем триггер типа AFTER на создание и обновление строк в table
+CREATE TRIGGER trigger_upsert_table
+    AFTER INSERT OR UPDATE ON table
+    FOR EACH ROW
+EXECUTE FUNCTION upsert_table_replica();
+
+-- 3. Создаем триггер на удаление для таблицы table
+CREATE OR REPLACE FUNCTION delete_table_replica()
+    RETURNS TRIGGER AS $$
+BEGIN
+    -- Удаление записи из table_replica по id
+    DELETE FROM table_replica
+    WHERE id = OLD.id;
+
+
+    RETURN NULL; 
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_delete_table
+    AFTER DELETE ON table
+    FOR EACH ROW
+EXECUTE FUNCTION delete_table_replica();
+```
+
+**Здесь также важно поговорить о времени работы.** Триггеры — неотъемлемые части операций вставки и обновления. Это значит, что время работы операций с основной таблицей увеличивается. Если говорить о блокировках на таблицах, то здесь они берутся классические, как и при обычной вставке.
+
+Блокировки в таблице-реплике тоже будут браться симметричные строкам в основной таблице. Этот факт означает, что не возникнет ситуации, когда взяты несколько блокировок в исходной таблице при разных операциях и при этом они борются за блокировку какой-то одной строки в таблице-реплике. Из этого делаем вывод, что блокировки на таблице-реплике не приводят к увеличению времени работы сервиса, для которого чистится bloat. 
+
 ### 2. Батчевый перенос данных
+![[Pasted image 20260709141808.png]]
 
 После настройки триггеров данные из исходной таблицы переносятся в таблицу-реплику батчами. Для этого используется самописный дубликатор на основе CTE-запроса. Он переносит данные порциями и запоминает последний обработанный идентификатор.
 
 Во время переноса используется `FOR UPDATE`, чтобы в момент копирования с выбранными строками не происходили конфликтующие изменения.
+
+``` sql
+drop function if exists copy_rows_from_table(size integer);
+create or replace function copy_rows_from_table(size integer) returns bool as $$
+declare
+    all_duplicated bool;
+begin
+    with batch as (
+        select
+            ...
+        from table as ts
+        where ts.id > (select last_id from dup_id) and ts.id < (select max_id from dup_id)
+        order by ts.id asc
+        limit size
+        for update -- чтобы в момент переноса ничего не происходило со строками из батча
+    ), duplicated as (
+        insert into table_replica select ... from batch on conflict(id) do nothing
+    ), duplication_offset as (
+        -- Запоминаем последний id из батча
+        -- если в батче для переноса ничего нет, то оставляем текущий id
+        update dup_ids set last_id = COALESCE((select max(id) from batch), last_id)
+    )
+    --  Запрос необходимо повторять до тех пор, пока значение all_done не станет true
+    -- если в батче переноса ничего нет, то продолжать нет смысла
+    select count(*)::integer = 0 as all_done into all_duplicated from batch; 
+    return all_duplicated;
+end;
+$$ language plpgsql;
+```
 
 ### 3. Перестановка таблиц
 
