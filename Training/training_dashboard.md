@@ -7,29 +7,47 @@ tags:
 
 # Последние тренировки
 
-```dataview
-TABLE
-  date as "Дата",
-  training_type as "Тип",
-  training_focus as "Фокус",
-  sport as "Спорт",
-  total_score as "Балл",
-  grade as "Оценка",
-  body_weight as "Вес",
-  sleep_hours as "Сон"
-FROM "Training/Logs"
-SORT date DESC
-LIMIT 20
-```
-
----
-
-# Статистика по оценкам
-
 ```dataviewjs
-const pages = dv.pages('"Training/Logs"')
-    .where(p => p.total_score !== undefined)
-    .array();
+const pages = dv.pages('"Training/Logs"').array();
+
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
+
+function getMetricValue(page, metric) {
+    const value = page[metric];
+
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
+}
+
+function isCompletedTraining(page) {
+    return METRICS.every(metric => getMetricValue(page, metric) !== null);
+}
+
+function totalScore(page) {
+    return METRICS.reduce((sum, metric) => {
+        return sum + getMetricValue(page, metric);
+    }, 0);
+}
 
 function gradeFromScore(score) {
     if (score >= 18) return "Отлично";
@@ -39,6 +57,90 @@ function gradeFromScore(score) {
     return "Провал";
 }
 
+const completedPages = pages
+    .filter(isCompletedTraining)
+    .sort((a, b) => {
+        const dateA = String(a.date ?? "");
+        const dateB = String(b.date ?? "");
+        return dateB.localeCompare(dateA);
+    })
+    .slice(0, 20);
+
+dv.table(
+    ["Дата", "Тренировка", "Тип", "Фокус", "Балл", "Оценка", "Вес", "Сон"],
+    completedPages.map(page => {
+        const score = totalScore(page);
+
+        return [
+            page.date,
+            page.file.link,
+            page.training_type ?? "",
+            page.training_focus ?? "",
+            score,
+            gradeFromScore(score),
+            page.body_weight ?? "",
+            page.sleep_hours ?? "",
+        ];
+    })
+);
+```
+
+---
+
+# Статистика по оценкам
+
+```dataviewjs
+const pages = dv.pages('"Training/Logs"').array();
+
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
+
+function getMetricValue(page, metric) {
+    const value = page[metric];
+
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
+}
+
+function isCompletedTraining(page) {
+    return METRICS.every(metric => getMetricValue(page, metric) !== null);
+}
+
+function totalScore(page) {
+    return METRICS.reduce((sum, metric) => {
+        return sum + getMetricValue(page, metric);
+    }, 0);
+}
+
+function gradeFromScore(score) {
+    if (score >= 18) return "Отлично";
+    if (score >= 14) return "Хорошо";
+    if (score >= 10) return "Нормально";
+    if (score >= 6) return "Плохо";
+    return "Провал";
+}
+
+const completedPages = pages.filter(isCompletedTraining);
+
 const stats = {
     "Отлично": 0,
     "Хорошо": 0,
@@ -47,11 +149,11 @@ const stats = {
     "Провал": 0,
 };
 
-for (const page of pages) {
-    const grade = page.grade ?? gradeFromScore(Number(page.total_score));
-    if (stats[grade] !== undefined) {
-        stats[grade] += 1;
-    }
+for (const page of completedPages) {
+    const score = totalScore(page);
+    const grade = gradeFromScore(score);
+
+    stats[grade] += 1;
 }
 
 const max = Math.max(...Object.values(stats), 1);
@@ -60,10 +162,11 @@ dv.table(
     ["Оценка", "Кол-во", "График"],
     Object.entries(stats).map(([grade, count]) => {
         const width = Math.round((count / max) * 30);
+
         return [
             grade,
             count,
-            "█".repeat(width)
+            "█".repeat(width),
         ];
     })
 );
@@ -202,9 +305,6 @@ LIMIT 20
 ```yaml
 date: 2026-07-11
 training_type: gym
-training_focus: chest_back_triceps
-grade: Отлично
-total_score: 18
 body_weight: 74.5
 sleep_hours: 8
 energy: 2

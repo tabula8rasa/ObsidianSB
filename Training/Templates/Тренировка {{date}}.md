@@ -2,10 +2,6 @@
 title: Тренировка {{date}}
 date: "{{date}}"
 training_type:
-training_focus:
-sport:
-grade:
-total_score:
 body_weight:
 sleep_hours:
 energy:
@@ -18,6 +14,7 @@ progression:
 recovery_feeling:
 pain_free:
 mood_after:
+sport:
 distance_km:
 duration_min:
 avg_pace:
