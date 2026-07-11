@@ -1,7 +1,5 @@
 ---
 title: Тренировка {{date}}
-tags:
-  - training-log
 date: "{{date}}"
 training_type:
 training_focus:

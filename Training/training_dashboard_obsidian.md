@@ -5,14 +5,6 @@ tags:
   - dashboard
 ---
 
-# Дашборд тренировок
-
-> [!important]
-> Для автоматических таблиц и графиков нужен плагин **Dataview**.  
-> Заметки тренировок должны иметь тег `#training-log` и заполненные поля в YAML.
-
----
-
 # Последние тренировки
 
 ```dataview
@@ -25,7 +17,7 @@ TABLE
   grade as "Оценка",
   body_weight as "Вес",
   sleep_hours as "Сон"
-FROM #training-log
+FROM "Training/Logs"
 SORT date DESC
 LIMIT 20
 ```
@@ -35,7 +27,7 @@ LIMIT 20
 # Статистика по оценкам
 
 ```dataviewjs
-const pages = dv.pages("#training-log")
+const pages = dv.pages('"Training/Logs"')
     .where(p => p.total_score !== undefined)
     .array();
 
@@ -82,7 +74,7 @@ dv.table(
 # Средние метрики
 
 ```dataviewjs
-const pages = dv.pages("#training-log")
+const pages = dv.pages('"Training/Logs"')
     .where(p => p.total_score !== undefined)
     .array();
 
@@ -121,7 +113,7 @@ dv.table(
 # Тренировки по типам
 
 ```dataviewjs
-const pages = dv.pages("#training-log").array();
+const pages = dv.pages('"Training/Logs"').array();
 
 const stats = {};
 
@@ -147,7 +139,7 @@ dv.table(
 # Прогресс итогового балла
 
 ```dataviewjs
-const pages = dv.pages("#training-log")
+const pages = dv.pages('"Training/Logs"')
     .where(p => p.date && p.total_score !== undefined)
     .sort(p => p.date, "asc")
     .array();
@@ -176,7 +168,7 @@ TABLE
   avg_hr as "Средний пульс",
   max_hr as "Макс. пульс",
   total_score as "Балл"
-FROM #training-log
+FROM "Training/Logs"
 WHERE training_type = "cardio"
 SORT date DESC
 LIMIT 20
@@ -195,7 +187,7 @@ TABLE
   technique as "Техника",
   progression as "Прогрессия",
   pain_free as "Без боли"
-FROM #training-log
+FROM "Training/Logs"
 WHERE training_type = "gym"
 SORT date DESC
 LIMIT 20
@@ -208,8 +200,6 @@ LIMIT 20
 В каждой заметке тренировки должны быть поля:
 
 ```yaml
-tags:
-  - training-log
 date: 2026-07-11
 training_type: gym
 training_focus: chest_back_triceps
