@@ -1,9 +1,3 @@
----
-title: Дашборд тренировок
-tags:
-  - training
-  - dashboard
----
 
 # Последние тренировки
 
@@ -57,25 +51,28 @@ function gradeFromScore(score) {
     return "Провал";
 }
 
+function normalizeDate(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value);
+}
+
 const completedPages = pages
     .filter(isCompletedTraining)
-    .sort((a, b) => {
-        const dateA = String(a.date ?? "");
-        const dateB = String(b.date ?? "");
-        return dateB.localeCompare(dateA);
-    })
+    .sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)))
     .slice(0, 20);
 
 dv.table(
-    ["Дата", "Тренировка", "Тип", "Фокус", "Балл", "Оценка", "Вес", "Сон"],
+    ["Дата", "Тренировка", "Тип", "Балл", "Оценка", "Вес", "Сон"],
     completedPages.map(page => {
         const score = totalScore(page);
 
         return [
-            page.date,
+            page.date ?? "",
             page.file.link,
             page.training_type ?? "",
-            page.training_focus ?? "",
             score,
             gradeFromScore(score),
             page.body_weight ?? "",
@@ -166,7 +163,7 @@ dv.table(
         return [
             grade,
             count,
-            "█".repeat(width),
+            count === 0 ? "" : "█".repeat(width),
         ];
     })
 );
@@ -177,36 +174,80 @@ dv.table(
 # Средние метрики
 
 ```dataviewjs
-const pages = dv.pages('"Training/Logs"')
-    .where(p => p.total_score !== undefined)
-    .array();
+const pages = dv.pages('"Training/Logs"').array();
 
-function avg(field) {
-    const values = pages
-        .map(p => Number(p[field]))
-        .filter(v => !Number.isNaN(v));
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
 
-    if (values.length === 0) return "-";
+function getMetricValue(page, metric) {
+    const value = page[metric];
 
-    return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
 }
+
+function isCompletedTraining(page) {
+    return METRICS.every(metric => getMetricValue(page, metric) !== null);
+}
+
+function totalScore(page) {
+    return METRICS.reduce((sum, metric) => {
+        return sum + getMetricValue(page, metric);
+    }, 0);
+}
+
+function avg(values) {
+    const filtered = values
+        .map(value => Number(value))
+        .filter(value => !Number.isNaN(value));
+
+    if (filtered.length === 0) {
+        return "-";
+    }
+
+    return (filtered.reduce((a, b) => a + b, 0) / filtered.length).toFixed(2);
+}
+
+function avgField(pages, field) {
+    return avg(pages.map(page => page[field]));
+}
+
+const completedPages = pages.filter(isCompletedTraining);
 
 dv.table(
     ["Метрика", "Среднее"],
     [
-        ["Итоговый балл", avg("total_score")],
-        ["Энергия", avg("energy")],
-        ["Фокус", avg("focus")],
-        ["Чувство целевой мышцы", avg("target_muscle_feel")],
-        ["Техника", avg("technique")],
-        ["Контроль дыхания", avg("breathing_control")],
-        ["Выполнение плана", avg("plan_completed")],
-        ["Прогрессия", avg("progression")],
-        ["Восстановление", avg("recovery_feeling")],
-        ["Без боли", avg("pain_free")],
-        ["Настроение после", avg("mood_after")],
-        ["Сон", avg("sleep_hours")],
-        ["Вес", avg("body_weight")],
+        ["Итоговый балл", avg(completedPages.map(page => totalScore(page)))],
+        ["Энергия", avgField(completedPages, "energy")],
+        ["Фокус", avgField(completedPages, "focus")],
+        ["Чувство целевой мышцы", avgField(completedPages, "target_muscle_feel")],
+        ["Техника", avgField(completedPages, "technique")],
+        ["Контроль дыхания", avgField(completedPages, "breathing_control")],
+        ["Выполнение плана", avgField(completedPages, "plan_completed")],
+        ["Прогрессия", avgField(completedPages, "progression")],
+        ["Восстановление", avgField(completedPages, "recovery_feeling")],
+        ["Без боли", avgField(completedPages, "pain_free")],
+        ["Настроение после", avgField(completedPages, "mood_after")],
+        ["Сон", avgField(completedPages, "sleep_hours")],
     ]
 );
 ```
@@ -216,12 +257,14 @@ dv.table(
 # Тренировки по типам
 
 ```dataviewjs
-const pages = dv.pages('"Training/Logs"').array();
+const pages = dv.pages('"Training/Logs"')
+    .where(page => page.training_type !== undefined && page.training_type !== null && page.training_type !== "")
+    .array();
 
 const stats = {};
 
 for (const page of pages) {
-    const type = page.training_type ?? "unknown";
+    const type = String(page.training_type);
     stats[type] = (stats[type] ?? 0) + 1;
 }
 
@@ -232,7 +275,7 @@ dv.table(
     Object.entries(stats).map(([type, count]) => [
         type,
         count,
-        "█".repeat(Math.round((count / max) * 30))
+        "█".repeat(Math.round((count / max) * 30)),
     ])
 );
 ```
@@ -242,90 +285,417 @@ dv.table(
 # Прогресс итогового балла
 
 ```dataviewjs
-const pages = dv.pages('"Training/Logs"')
-    .where(p => p.date && p.total_score !== undefined)
-    .sort(p => p.date, "asc")
-    .array();
+const pages = dv.pages('"Training/Logs"').array();
 
-const rows = pages.map(p => {
-    const score = Number(p.total_score);
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
+
+function getMetricValue(page, metric) {
+    const value = page[metric];
+
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
+}
+
+function isCompletedTraining(page) {
+    return METRICS.every(metric => getMetricValue(page, metric) !== null);
+}
+
+function totalScore(page) {
+    return METRICS.reduce((sum, metric) => {
+        return sum + getMetricValue(page, metric);
+    }, 0);
+}
+
+function gradeFromScore(score) {
+    if (score >= 18) return "Отлично";
+    if (score >= 14) return "Хорошо";
+    if (score >= 10) return "Нормально";
+    if (score >= 6) return "Плохо";
+    return "Провал";
+}
+
+function normalizeDate(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value);
+}
+
+const completedPages = pages
+    .filter(page => page.date && isCompletedTraining(page))
+    .sort((a, b) => normalizeDate(a.date).localeCompare(normalizeDate(b.date)));
+
+const rows = completedPages.map(page => {
+    const score = totalScore(page);
     const bar = "█".repeat(Math.max(0, Math.round(score)));
-    return [p.date, p.file.link, score, bar];
+
+    return [
+        page.date,
+        page.file.link,
+        score,
+        gradeFromScore(score),
+        bar,
+    ];
 });
 
-dv.table(["Дата", "Тренировка", "Балл", "График"], rows);
+dv.table(["Дата", "Тренировка", "Балл", "Оценка", "График"], rows);
+```
+
+---
+
+# Прогресс веса
+
+```dataviewjs
+const pages = dv.pages('"Training/Logs"')
+    .where(page => page.date && page.body_weight !== undefined && page.body_weight !== null && page.body_weight !== "")
+    .array();
+
+function normalizeDate(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value);
+}
+
+const rows = pages
+    .sort((a, b) => normalizeDate(a.date).localeCompare(normalizeDate(b.date)))
+    .map(page => [
+        page.date,
+        page.file.link,
+        Number(page.body_weight),
+    ]);
+
+dv.table(["Дата", "Тренировка", "Вес"], rows);
 ```
 
 ---
 
 # Кардио-метрики
 
-```dataview
-TABLE
-  date as "Дата",
-  sport as "Спорт",
-  training_focus as "Фокус",
-  distance_km as "Дистанция",
-  duration_min as "Время",
-  avg_pace as "Средний темп",
-  avg_hr as "Средний пульс",
-  max_hr as "Макс. пульс",
-  total_score as "Балл"
-FROM "Training/Logs"
-WHERE training_type = "cardio"
-SORT date DESC
-LIMIT 20
+```dataviewjs
+const pages = dv.pages('"Training/Logs"')
+    .where(page => page.training_type === "cardio")
+    .array();
+
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
+
+function getMetricValue(page, metric) {
+    const value = page[metric];
+
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
+}
+
+function isCompletedTraining(page) {
+    return METRICS.every(metric => getMetricValue(page, metric) !== null);
+}
+
+function totalScore(page) {
+    return METRICS.reduce((sum, metric) => {
+        return sum + getMetricValue(page, metric);
+    }, 0);
+}
+
+function gradeFromScore(score) {
+    if (score >= 18) return "Отлично";
+    if (score >= 14) return "Хорошо";
+    if (score >= 10) return "Нормально";
+    if (score >= 6) return "Плохо";
+    return "Провал";
+}
+
+function normalizeDate(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value);
+}
+
+const rows = pages
+    .sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)))
+    .slice(0, 20)
+    .map(page => {
+        const completed = isCompletedTraining(page);
+        const score = completed ? totalScore(page) : "";
+
+        return [
+            page.date ?? "",
+            page.file.link,
+            page.sport ?? "",
+            page.distance_km ?? "",
+            page.duration_min ?? "",
+            page.avg_pace ?? "",
+            page.avg_hr ?? "",
+            page.max_hr ?? "",
+            score,
+            completed ? gradeFromScore(score) : "",
+        ];
+    });
+
+dv.table(
+    ["Дата", "Тренировка", "Спорт", "Дистанция", "Время", "Темп", "Пульс ср.", "Пульс макс.", "Балл", "Оценка"],
+    rows
+);
 ```
 
 ---
 
 # Зал-метрики
 
-```dataview
-TABLE
-  date as "Дата",
-  training_focus as "Фокус",
-  total_score as "Балл",
-  target_muscle_feel as "Целевая мышца",
-  technique as "Техника",
-  progression as "Прогрессия",
-  pain_free as "Без боли"
-FROM "Training/Logs"
-WHERE training_type = "gym"
-SORT date DESC
-LIMIT 20
+```dataviewjs
+const pages = dv.pages('"Training/Logs"')
+    .where(page => page.training_type === "gym")
+    .array();
+
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
+
+function getMetricValue(page, metric) {
+    const value = page[metric];
+
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
+}
+
+function isCompletedTraining(page) {
+    return METRICS.every(metric => getMetricValue(page, metric) !== null);
+}
+
+function totalScore(page) {
+    return METRICS.reduce((sum, metric) => {
+        return sum + getMetricValue(page, metric);
+    }, 0);
+}
+
+function gradeFromScore(score) {
+    if (score >= 18) return "Отлично";
+    if (score >= 14) return "Хорошо";
+    if (score >= 10) return "Нормально";
+    if (score >= 6) return "Плохо";
+    return "Провал";
+}
+
+function normalizeDate(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value);
+}
+
+const rows = pages
+    .sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)))
+    .slice(0, 20)
+    .map(page => {
+        const completed = isCompletedTraining(page);
+        const score = completed ? totalScore(page) : "";
+
+        return [
+            page.date ?? "",
+            page.file.link,
+            score,
+            completed ? gradeFromScore(score) : "",
+            page.target_muscle_feel ?? "",
+            page.technique ?? "",
+            page.progression ?? "",
+            page.pain_free ?? "",
+        ];
+    });
+
+dv.table(
+    ["Дата", "Тренировка", "Балл", "Оценка", "Целевая мышца", "Техника", "Прогрессия", "Без боли"],
+    rows
+);
 ```
 
 ---
 
-# Как заполнять, чтобы дашборд работал
+# Незаполненные тренировки
 
-В каждой заметке тренировки должны быть поля:
+```dataviewjs
+const pages = dv.pages('"Training/Logs"').array();
+
+const METRICS = [
+    "energy",
+    "focus",
+    "target_muscle_feel",
+    "technique",
+    "breathing_control",
+    "plan_completed",
+    "progression",
+    "recovery_feeling",
+    "pain_free",
+    "mood_after",
+];
+
+function getMetricValue(page, metric) {
+    const value = page[metric];
+
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+
+    if (Number.isNaN(numberValue)) {
+        return null;
+    }
+
+    return numberValue;
+}
+
+function missingMetrics(page) {
+    return METRICS.filter(metric => getMetricValue(page, metric) === null);
+}
+
+function normalizeDate(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value);
+}
+
+const incompletePages = pages
+    .filter(page => missingMetrics(page).length > 0)
+    .sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)))
+    .slice(0, 20);
+
+dv.table(
+    ["Дата", "Тренировка", "Не заполнено"],
+    incompletePages.map(page => [
+        page.date ?? "",
+        page.file.link,
+        missingMetrics(page).join(", "),
+    ])
+);
+```
+
+---
+
+# Как заполнять тренировку
+
+В каждой заметке тренировки заполняй только поля из шаблона.
+
+## Обязательные поля для расчёта оценки
 
 ```yaml
-date: 2026-07-11
-training_type: gym
-body_weight: 74.5
-sleep_hours: 8
 energy: 2
 focus: 2
-target_muscle_feel: 2
+target_muscle_feel: 1
 technique: 2
 breathing_control: 1
 plan_completed: 2
-progression: 2
+progression: 1
 recovery_feeling: 2
 pain_free: 2
-mood_after: 1
+mood_after: 2
 ```
 
-Для кардио дополнительно:
+## Шкала каждого пункта
+
+| Балл | Значение |
+|---:|---|
+| `0` | плохо / не выполнено |
+| `1` | средне / частично |
+| `2` | хорошо / выполнено |
+
+## Итоговая оценка считается автоматически
+
+| Сумма | Оценка |
+|---:|---|
+| `18–20` | Отлично |
+| `14–17` | Хорошо |
+| `10–13` | Нормально |
+| `6–9` | Плохо |
+| `0–5` | Провал |
+
+## Для зала
 
 ```yaml
+training_type: gym
+body_weight: 74.5
+sleep_hours: 8
+```
+
+## Для кардио
+
+```yaml
+training_type: cardio
 sport: run
 distance_km: 5.2
 duration_min: 32
 avg_pace: "6:10"
 avg_hr: 155
 max_hr: 178
+```
+
+## Для отдыха
+
+```yaml
+training_type: rest
+body_weight: 74.5
+sleep_hours: 8
 ```
