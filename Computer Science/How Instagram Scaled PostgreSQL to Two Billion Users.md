@@ -13,10 +13,7 @@ tags:
     
 - scalability  
 ---
-
 [Source](https://www.youtube.com/watch?v=YLoYcwnqVzM)
-
-> This note summarizes only the ideas, numbers, and examples presented in the video.
 
 PostgreSQL is used in some capacity by major platforms such as Instagram, Reddit, Notion, Heroku, Strava, and Discord. These companies did not stay with a relational database because they were unaware of newer technologies. They evaluated the alternatives and decided that PostgreSQL could continue to work if the surrounding architecture was designed carefully.
 
@@ -28,19 +25,30 @@ Instagram launched in 2010 with only three engineers and a deliberately simple a
 
 This basic design supported approximately 10 million users by 2011. By 2012, when Facebook acquired Instagram for about one billion dollars, the platform had around 27 million users and a PostgreSQL database of roughly 2 TB. The system had reached substantial scale without starting with a complicated distributed architecture.
 
-The main lesson from this stage is that simple and mature technology can support significant growth. A small team can focus on product development instead of maintaining unnecessary infrastructure, as long as the existing system still satisfies its requirements.
-
 ## The First Bottleneck: Database Connections
-
+![[Pasted image 20260723190145.png|600]]
 As the database grew, it approached the memory limits of the largest available EC2 instances and disk I/O became increasingly saturated. However, the first major bottleneck was not simply storage capacity. It was the number of active database connections.
 
 Instagram’s Django application servers repeatedly opened connections to PostgreSQL. Each connection consumed approximately 1.3 MB of memory. With 50 application servers maintaining 30 connections each, the database could receive around 1,500 simultaneous connections. Close to 2 GB of RAM could therefore be consumed before PostgreSQL used that memory for caching, sorting, query planning, or executing useful work.
-
+$$
+{\Large
+\underbrace{50}_{\substack{\text{application}\\\text{servers}}}
+\times
+\underbrace{30}_{\substack{\text{connections}\\\text{per server}}}
+\times
+\underbrace{1.3\ \mathrm{MB}}_{\substack{\text{memory per}\\\text{connection}}}
+=
+1950\ \mathrm{MB}
+\approx 2\ \mathrm{GB}
+}
+$$
 Instagram solved this problem with **PgBouncer**, a lightweight connection-pooling proxy placed between the application and PostgreSQL. Application servers could still create many logical connections, but PgBouncer multiplexed them onto a much smaller pool of real PostgreSQL connections.
+![[Pasted image 20260723190305.png|600]]
+Instead of maintaining about 1,500 database backends, PostgreSQL could work with a pool of roughly 30 actual connections. This reduced memory overhead and allowed the database to use more resources for query processing. 
 
-Instead of maintaining about 1,500 database backends, PostgreSQL could work with a pool of roughly 30 actual connections. This reduced memory overhead and allowed the database to use more resources for query processing. The broader lesson is that connection management often becomes a visible bottleneck before the database engine reaches its real computational limit.
+> [!important] The broader lesson is that connection management often becomes a visible bottleneck before the database engine reaches its real computational limit.
 
-## Why Instagram Chose Sharding
+## Why Instagram Chose Sharding and didn't switch to NoSQL
 
 Connection pooling delayed the problem, but it could not remove the physical limits of a single machine. Eventually, Instagram reached the point where even the largest server could no longer provide enough CPU, memory, storage, and I/O capacity.
 
@@ -51,7 +59,7 @@ Moving to NoSQL would not remove the need to distribute data horizontally. It wo
 This decision allowed the team to preserve familiar database behavior, tooling, and operational knowledge while scaling beyond one physical server.
 
 ## Choosing the Shard Key
-
+![[Pasted image 20260723191620.png]]
 Instagram selected the **user ID** as the shard key. All data associated with a particular user could therefore be stored on the same shard. User-scoped operations remained efficient because the application usually needed to query only one shard.
 
 The disadvantage was that queries involving many users became more difficult. Building a social feed, for example, could require data belonging to users located on many different shards. Instagram accepted this trade-off and solved cross-user workloads at the application layer with caching and precomputed feeds instead of relying on large distributed joins.
@@ -60,18 +68,25 @@ The important principle is that every shard key optimizes some access patterns w
 
 ## Logical Shards and Physical Machines
 
-One of Instagram’s most important architectural decisions was to separate the logical organization of data from the physical servers storing it. Instead of treating one shard as one database machine, Instagram created thousands of **logical shards**, represented as PostgreSQL schemas.
+> [!important]  One of Instagram’s most important architectural decisions was to separate the logical organization of data from the physical servers storing it. Instead of treating one shard as one database machine, Instagram created thousands of **logical shards**, represented as PostgreSQL schemas.
 
-At first, many logical shards could exist on the same physical server. The application used a mapping that associated every logical shard with its current physical location. This extra layer of indirection made future scaling much easier.
+At first, many logical shards could exist on the same physical server. The application used a **mapping** that associated every logical shard with its current physical location. This extra layer of indirection made future scaling much easier.
+
+Example of a mapping table:
+
+| logical_shard_id | physical_node | host    | replica_lag | size_gb | last_migrated | status  | owner_team |
+|------------------|---------------|---------|-------------|---------|---------------|---------|------------|
+| 0000             | N0            | db-0.1g | 12 ms       | 47      | —             | healthy | feed       |
+| 0001             | N0            | db-0.1g | 12 ms       | 48      | —             | healthy | feed       |
+| —                | —             | —       | —           | —       | —             | —       | —          |
+| 1920             | N7            | db-7.1g | 31 ms       | 62      | moved 09-12   | healthy | media      |
+| —                | —             | —       | —           | —       | —             | —       | —          |
 
 When a server approached its storage or performance limits, Instagram did not need to redesign the shard key or repartition the complete dataset. The process was more limited:
-
+![[Pasted image 20260723192422.png]]
 1. Copy selected logical shards to another machine using streaming replication.
-    
 2. Update the shard-to-server mapping.
-    
 3. Redirect application traffic to the new location.
-    
 
 The logical identity of each shard remained unchanged even though its physical placement moved. This avoided a full resharding operation whenever new hardware was added and made individual shards movable units of data rather than permanent parts of one server.
 
@@ -79,9 +94,9 @@ The logical identity of each shard remained unchanged even though its physical p
 
 Sharding created another problem: ordinary auto-incrementing identifiers were no longer globally unique. Two shards could independently generate the same numeric ID. A centralized sequence generator could solve collisions, but it would introduce coordination overhead and a potential single point of failure.
 
-Instagram considered several alternatives. UUIDs provided uniqueness but were considered too large and not naturally sortable by creation time. Flickr-style ticket servers depended on centralized infrastructure, while Twitter’s Snowflake approach required a separate service.
+Instagram considered several alternatives. **UUIDs** provided uniqueness but were considered too large and not naturally sortable by creation time. **Flickr-style ticket servers** depended on centralized infrastructure, while Twitter’s **Snowflake approach** required a separate service.
 
-Instagram instead implemented a Snowflake-style ID generator directly inside PostgreSQL. Each identifier was stored as a 64-bit integer with the following structure:
+Instagram instead implemented a *Snowflake-style ID generator* directly inside PostgreSQL. Each identifier was stored as a 64-bit integer with the following structure:
 
 |Bits|Purpose|
 |--:|---|
@@ -89,9 +104,9 @@ Instagram instead implemented a Snowflake-style ID generator directly inside Pos
 |13|Logical shard identifier|
 |10|Sequence number within the same shard and millisecond|
 
-The timestamp made identifiers roughly sortable by creation time. The shard identifier prevented different logical shards from generating the same value, while the sequence number allowed multiple IDs to be created within one millisecond on the same shard.
+**The timestamp made identifiers roughly sortable by creation time.** The shard identifier prevented different logical shards from generating the same value, while the sequence number allowed multiple IDs to be created within one millisecond on the same shard.
 
-Because the logic was implemented as a PostgreSQL function, every shard could generate globally unique identifiers without contacting an external coordination service. The video presents this as a pattern later used in systems such as Discord and Slack.
+Because the logic was implemented as a PostgreSQL function, every shard could generate globally unique identifiers without contacting an external coordination service. 
 
 ## PostgreSQL Features Used for Efficiency
 
