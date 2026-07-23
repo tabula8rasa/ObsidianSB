@@ -124,33 +124,6 @@ A functional index stores the result of an expression rather than the full origi
 
 Logical replication streams inserts, updates, and deletes to downstream consumers. According to the video, this can be used to keep systems such as search indexes or caches synchronized in near real time. For workloads that only require database changes to be propagated elsewhere, it can serve as a simpler alternative to a more complex event-streaming setup.
 
-## The Complexity Budget
-
-The architectural story is connected to the idea that every engineering team has a limited **complexity budget**. Introducing a new database or infrastructure platform requires engineers to learn its behavior, understand failure scenarios, create monitoring and operational procedures, and hire people with relevant expertise.
-
-Mature technologies such as PostgreSQL, Linux, and Memcached already have extensive documentation, established operational patterns, and a large pool of experienced engineers. Their adoption cost is therefore lower than that of a specialized technology whose advantages may not yet be necessary.
-
-This does not mean specialized databases should never be used. The video argues that they are justified when the system faces a genuinely different problem, such as vector search or planet-scale graph traversal. They should not be introduced merely because an application has become popular or because a relational database has reached the capacity of one machine.
-
-Instagram’s approach was to solve each specific bottleneck directly:
-
-- PgBouncer reduced connection overhead.
-    
-- Sharding removed the limits of a single server.
-    
-- Caching and precomputed feeds handled cross-user queries.
-    
-- Custom 64-bit IDs provided globally unique identifiers.
-    
-- Replication delivered database changes to downstream systems.
-    
-
-## Instagram’s Later Architecture
-
-The techniques described in the video are foundational lessons from Instagram’s scaling journey, not a claim that its entire modern architecture still uses the same PostgreSQL shards.
-
-According to the video, by 2026 Instagram’s social graph had been integrated into Meta’s internal infrastructure and was handled by **TAO**, a distributed system designed for graph workloads. This change follows the same general philosophy: keep mature general-purpose technology while it fits the problem, and introduce specialized infrastructure when the workload becomes fundamentally different.
-
 ## Main Lessons
 
 Instagram kept a single PostgreSQL database until it had tens of millions of users. This allowed a very small engineering team to focus on the product rather than operating a distributed data platform too early.
@@ -159,7 +132,7 @@ When horizontal scaling became unavoidable, the team separated logical shards fr
 
 The system also avoided forcing every query into a distributed relational model. Difficult cross-user workloads were handled with application-level caching and precomputed results. PostgreSQL remained responsible for the workloads it handled well, while surrounding components addressed the problems created by scale.
 
-The broader conclusion is that the database is rarely the only bottleneck. Scalability depends on the architecture around it: how connections are managed, how data is partitioned, how identifiers are generated, how read patterns are cached, and how changes are propagated to other systems.
+> [!important] The broader conclusion is that the database is rarely the only bottleneck. Scalability depends on the architecture around it: how connections are managed, how data is partitioned, how identifiers are generated, how read patterns are cached, and how changes are propagated to other systems.
 
 ## Key Takeaways
 
