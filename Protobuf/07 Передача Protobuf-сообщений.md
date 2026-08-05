@@ -390,8 +390,3 @@ except DecodeError as exc:
         "Некорректный Protobuf payload"
     ) from exc
 ```
-
-Связанные заметки:
-
-- [[06 Wire format и сериализация]]
-- [[10 Полный учебный проект Python]]

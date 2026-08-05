@@ -6,9 +6,6 @@ tags:
 aliases:
   - Protocol Buffers Hub
 ---
-
-# Protocol Buffers — Hub
-
 > [!abstract]
 > **Protocol Buffers (Protobuf)** — это технология описания структуры данных и их сериализации и десериализации в компактный бинарный формат.
 

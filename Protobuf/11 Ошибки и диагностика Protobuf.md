@@ -4,9 +4,6 @@ tags:
   - troubleshooting
   - python
 ---
-
-# Ошибки и диагностика Protobuf
-
 ## 1. `ModuleNotFoundError: user_pb2`
 
 Причины:

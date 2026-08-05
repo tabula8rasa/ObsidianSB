@@ -4,9 +4,6 @@ tags:
   - python
   - tutorial
 ---
-
-# Полный учебный проект Protobuf + Python
-
 ## 1. Структура
 
 ```text

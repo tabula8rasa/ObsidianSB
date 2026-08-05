@@ -5,9 +5,6 @@ tags:
   - ci
   - sdk
 ---
-
-# Buf и production workflow
-
 ## 1. Что такое Buf
 
 Buf — набор инструментов вокруг Protobuf.
@@ -350,8 +347,3 @@ plugins:
 buf lint
 buf generate
 ```
-
-Связанные заметки:
-
-- [[08 Совместимость и эволюция схем]]
-- [[04 Генерация Python-кода и user_pb2.py]]
