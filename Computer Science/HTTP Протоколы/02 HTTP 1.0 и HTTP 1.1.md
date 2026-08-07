@@ -1,5 +1,3 @@
-# HTTP/1.0 и HTTP/1.1
-
 ## Что такое HTTP
 
 HTTP — прикладной протокол request/response.
@@ -26,7 +24,7 @@ IP
 Для HTTPS:
 
 ```text
-HTTP
+HTTPS
  ↓
 TLS
  ↓

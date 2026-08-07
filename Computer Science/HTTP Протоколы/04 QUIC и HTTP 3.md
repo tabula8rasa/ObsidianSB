@@ -1,5 +1,3 @@
-# QUIC и HTTP/3
-
 ## Почему HTTP/3 не использует TCP
 
 HTTP/2 решил проблему HTTP-level Head-of-Line Blocking с помощью streams и multiplexing.
