@@ -1,0 +1,6 @@
+[[01 TCP - поток байтов, надежность и сокеты]]
+[[02 HTTP 1.0 и HTTP 1.1]]
+[[03 HTTP 2 - streams и multiplexing]]
+[[04 QUIC и HTTP 3]]
+[[05 HTTP framing - как определяется конец сообщения]]
+[[06 HTTP в production - FastAPI, reverse proxy и версии протокола]]
