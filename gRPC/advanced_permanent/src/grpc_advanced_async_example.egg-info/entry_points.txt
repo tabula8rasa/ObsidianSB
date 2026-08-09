@@ -1,0 +1,3 @@
+[console_scripts]
+grpc-client = app.client:main
+grpc-server = app.server:main

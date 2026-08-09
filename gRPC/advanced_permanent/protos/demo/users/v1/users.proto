@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package demo.users.v1;
+
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_BLOCKED = 2;
+}
+
+enum UserEventType {
+  USER_EVENT_TYPE_UNSPECIFIED = 0;
+  USER_EVENT_TYPE_SNAPSHOT = 1;
+  USER_EVENT_TYPE_CREATED_OR_UPDATED = 2;
+  USER_EVENT_TYPE_HEARTBEAT = 3;
+}
+
+message Address {
+  string country = 1;
+  string city = 2;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+  optional string email = 3;
+  UserStatus status = 4;
+  Address address = 5;
+  repeated string roles = 6;
+}
+
+message GetUserRequest {
+  int64 user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message WatchUsersRequest {
+  bool include_existing = 1;
+}
+
+message UserEvent {
+  int64 sequence = 1;
+  UserEventType type = 2;
+  User user = 3;
+  string message = 4;
+}
+
+message UploadUsersResponse {
+  int32 accepted = 1;
+  repeated int64 user_ids = 2;
+}
+
+message UserCommand {
+  string client_id = 1;
+  User user = 2;
+  string note = 3;
+}
+
+service UserService {
+  // Unary: one request -> one response.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // Server streaming: one request -> long-lived stream of events.
+  rpc WatchUsers(WatchUsersRequest) returns (stream UserEvent);
+
+  // Client streaming: many users -> one summary response after client closes its send side.
+  rpc UploadUsers(stream User) returns (UploadUsersResponse);
+
+  // Bidirectional streaming: both sides keep their streams open.
+  rpc SyncUsers(stream UserCommand) returns (stream UserEvent);
+}

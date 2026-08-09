@@ -1,0 +1,12 @@
+- [[01 - gRPC - Кратко и по делу]] — что такое gRPC, минимальная схема и основные сущности.
+- [[02 - gRPC - Proto и генерация Python-кода]] — `.proto`, `*_pb2.py`, `*_pb2_grpc.py`, сериализация.
+- [[03 - gRPC - Сервер в Python]] — создание сервера, регистрация методов, `Servicer`, `context`, запуск.
+- [[04 - gRPC - Клиент, Channel и Stub]] — `Channel`, `Stub`, когда реально начинается RPC, что делает `await`.
+- [[05 - gRPC - Четыре типа RPC и streaming]] — unary, client-streaming, server-streaming, bidi.
+- [[06 - gRPC - AsyncIO и конкурентность]] — event loop, Task, coroutine, async generator, `gather`.
+- [[07 - gRPC - HTTP2, TCP и путь запроса]] — от `stub.Method()` до TCP, HTTP/2 stream, framing и обратно.
+- [[08 - gRPC - Завершение stream, END_STREAM, FIN и RST]] — как заканчивается RPC и почему это не TCP FIN.
+- [[09 - gRPC - Context, ошибки, deadline и cancellation]] — `ServicerContext`, `abort`, статусы.
+- [[10 - gRPC - Queue, subscribers, locks и состояние сервера]] — `asyncio.Queue`, pub/sub, backpressure, `asyncio.Lock`.
+- [[11 - gRPC - Вопросы на собеседовании]] — вопросы и короткие ответы.
+- [[12 - gRPC - Advanced UserService - архитектура и код]] — разбор учебного advanced-проекта.
