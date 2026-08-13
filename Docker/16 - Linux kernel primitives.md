@@ -1,5 +1,3 @@
-# Linux kernel primitives
-
 Docker не реализует собственное ядро.
 
 Все контейнерные гарантии в итоге предоставляет Linux kernel.

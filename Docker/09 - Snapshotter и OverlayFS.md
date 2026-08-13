@@ -1,5 +1,3 @@
-# Snapshotter и OverlayFS
-
 Snapshotter — containerd subsystem/plugin, отвечающий за подготовку mountable filesystem.
 
 В рассматриваемой конфигурации Docker показывает:
