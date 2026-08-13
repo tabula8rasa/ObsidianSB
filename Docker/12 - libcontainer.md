@@ -1,5 +1,3 @@
-# libcontainer
-
 `libcontainer` — Linux-specific библиотечная часть проекта `runc`.
 
 ```text

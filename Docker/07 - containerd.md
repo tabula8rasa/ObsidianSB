@@ -1,5 +1,3 @@
-# containerd
-
 `containerd` — системный daemon для управления container content, snapshots и container tasks.
 
 Проверить:
