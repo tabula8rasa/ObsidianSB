@@ -1,5 +1,3 @@
-# chroot
-
 `chroot` меняет корневой каталог `/` для процесса и его потомков.
 
 ```bash
@@ -37,38 +35,6 @@ exec /usr/bin/bash
 ```
 
 Поэтому executable и runtime dependencies должны существовать внутри нового root.
-
----
-
-# Dynamic linker
-
-Проверить ELF interpreter:
-
-```bash
-readelf -l /usr/bin/bash | grep interpreter
-```
-
-Если Bash требует:
-
-```text
-/lib64/ld-linux-x86-64.so.2
-```
-
-то после chroot он ищется как:
-
-```text
-/tmp/rootfs/lib64/ld-linux-x86-64.so.2
-```
-
----
-
-# Shared libraries
-
-```bash
-ldd /usr/bin/bash
-```
-
-Необходимые libraries тоже должны существовать в новом root.
 
 ---
 

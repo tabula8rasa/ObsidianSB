@@ -1,5 +1,3 @@
-# Linux Namespaces и unshare
-
 Namespace — объект ядра Linux, который даёт группе процессов отдельное представление конкретного системного ресурса.
 
 ---
@@ -70,34 +68,6 @@ unshare(CLONE_NEWUTS)
 new UTS
    ↓
 bash
-```
-
----
-
-# Почему после `sudo unshare ... bash` shell root
-
-Из-за `sudo`, а не из-за `unshare`.
-
-```text
-UID 1000
-  ↓ sudo
-UID 0
-```
-
----
-
-# UTS namespace и hostname
-
-Для чистого эксперимента не стоит использовать `hostnamectl`.
-
-`hostnamectl` может обратиться через D-Bus к host `systemd-hostnamed`, и уже host daemon поменяет host hostname.
-
-Чистый тест:
-
-```bash
-sudo unshare --uts bash
-python -c 'import os; os.sethostname(b"container-demo")'
-uname -n
 ```
 
 ---
