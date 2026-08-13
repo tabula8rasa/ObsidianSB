@@ -1,5 +1,3 @@
-# Docker CLI
-
 `docker` — пользовательский клиент Docker Engine.
 
 Примеры:

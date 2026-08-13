@@ -1,5 +1,3 @@
-# docker-proxy
-
 `docker-proxy` — опциональная вспомогательная программа Docker networking.
 
 Она может участвовать в userland proxy для опубликованных портов.

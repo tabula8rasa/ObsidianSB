@@ -1,5 +1,3 @@
-# dockerd
-
 `dockerd` — основной daemon Docker Engine.
 
 Проверить:

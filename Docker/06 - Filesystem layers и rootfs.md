@@ -1,5 +1,3 @@
-# Filesystem layers и rootfs
-
 Это ключевая тема для понимания физики Docker image и container filesystem.
 
 ---

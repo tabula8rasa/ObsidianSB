@@ -1,5 +1,3 @@
-# Жизненный цикл build, pull и run
-
 Эта заметка соединяет physical storage и runtime.
 
 ---

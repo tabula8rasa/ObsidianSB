@@ -1,5 +1,3 @@
-# docker-init и tini
-
 Container PID 1 имеет особое поведение в Linux.
 
 Если приложение плохо обрабатывает signals/zombies/orphans, можно использовать маленький init process.

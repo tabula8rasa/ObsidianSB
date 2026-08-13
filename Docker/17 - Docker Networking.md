@@ -1,5 +1,3 @@
-# Docker Networking
-
 Docker networking — отдельная подсистема поверх Linux networking primitives.
 
 ---

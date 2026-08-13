@@ -1,5 +1,3 @@
-# containerd-shim-runc-v2
-
 `containerd-shim-runc-v2` — runtime shim между `containerd` и `runc`/container process.
 
 Проверить:

@@ -1,5 +1,3 @@
-# Docker Buildx
-
 Buildx — клиентская часть современной build-системы Docker.
 
 Команды:

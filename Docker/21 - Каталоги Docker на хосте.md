@@ -1,5 +1,3 @@
-# Каталоги Docker на хосте
-
 Основные host directories Docker Engine/Linux без углубления во внутреннее дерево.
 
 ---

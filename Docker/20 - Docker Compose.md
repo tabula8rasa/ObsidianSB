@@ -1,5 +1,3 @@
-# Docker Compose
-
 Docker Compose — высокоуровневый инструмент описания набора Docker resources.
 
 Пример:

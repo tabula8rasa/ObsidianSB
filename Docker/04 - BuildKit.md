@@ -1,5 +1,3 @@
-# BuildKit
-
 BuildKit — build engine Docker.
 
 Его задача:
