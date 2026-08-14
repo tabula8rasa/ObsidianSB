@@ -1,5 +1,5 @@
 Docker networking — отдельная подсистема поверх Linux networking primitives.
-
+![[Pasted image 20260815005542.png]]
 ---
 
 # Базовая bridge-модель
