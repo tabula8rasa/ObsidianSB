@@ -121,4 +121,4 @@
 - интеграции;
 - корпоративная эксплуатация.
 
-![[Pasted image 20260908152858.png]]![[Pasted image 20260908153047.png]]![[Pasted image 20260908153155.png]]![[Pasted image 20260908153315.png]]![[Pasted image 20260908153411.png]]![[Pasted image 20260908174316.png]]![[Pasted image 20260908174335.png]]
+![[Pasted image 20260908152858.png]]![[Pasted image 20260908153047.png]]![[Pasted image 20260908153155.png]]![[Pasted image 20260908153315.png]]![[Pasted image 20260908153411.png]]![[Pasted image 20260908174316.png]]![[Pasted image 20260908174335.png]]![[Pasted image 20260908182440.png]]
