@@ -174,21 +174,21 @@ UoW почти всегда идёт в паре с **паттерном Reposit
 
 ```
 ┌─────────────────────────┐
-│   Бизнес-логика/сервис   │  знает только про домен и uow.commit()
+│   Бизнес-логика/сервис  │  знает только про домен и uow.commit()
 └───────────┬─────────────┘
             │ uow.accounts.get(id), uow.accounts.add(x)
 ┌───────────▼─────────────┐
-│   Unit of Work            │  управляет транзакцией (commit/rollback)
-│   ├─ accounts: Repository │
-│   └─ orders:   Repository │
+│ Unit of Work            │  управляет транзакцией (commit/rollback)
+│ ├─ accounts: Repository │
+│ └─ orders:   Repository │
 └───────────┬─────────────┘
             │ session.query(...), session.add(...)
 ┌───────────▼─────────────┐
-│   ORM-сессия (SQLAlchemy) │
+│ ORM-сессия (SQLAlchemy) │
 └───────────┬─────────────┘
             │ SQL
 ┌───────────▼─────────────┐
-│   База данных              │
+│       База данных       │
 └─────────────────────────┘
 ```
 
