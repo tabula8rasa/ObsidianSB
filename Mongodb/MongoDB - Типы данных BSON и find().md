@@ -116,34 +116,34 @@ created: 2026-09-22
 
 ## 2. Описание типов данных
 
-| Поле | BSON-тип | Код `$type` | Описание |
-|---|---|---|---|
-| `stringField` | String | `"string"` / 2 | UTF-8 строка |
-| `int32Field` | Int32 | `"int"` / 16 | 32-битное целое |
-| `int64Field` | Int64 (`NumberLong`) | `"long"` / 18 | 64-битное целое, нужен для больших счётчиков |
-| `doubleField` | Double | `"double"` / 1 | 64-битное число с плавающей точкой (неточная арифметика) |
-| `decimalField` | Decimal128 (`NumberDecimal`) | `"decimal"` / 19 | Точная десятичная арифметика, для денег |
-| `booleanField` | Boolean | `"bool"` / 8 | true/false |
-| `nullField` | Null | `"null"` / 10 | Явное отсутствие значения (отличается от отсутствия поля) |
-| `dateField` | Date (`ISODate`) | `"date"` / 9 | Миллисекунды с эпохи Unix |
-| `timestampField` | Timestamp | `"timestamp"` / 17 | Внутренний служебный тип (используется в oplog), НЕ для бизнес-дат |
-| `regexField` | Regular Expression | `"regex"` / 11 | Хранимое регулярное выражение |
-| `binaryField` | BinData subtype 0 | `"binData"` / 5 | Произвольные бинарные данные |
-| `uuidField` | BinData subtype 4 | `"binData"` / 5 | UUID в бинарном виде |
-| `objectIdField` | ObjectId | `"objectId"` / 7 | 12-байтовый уникальный идентификатор (timestamp+machine+counter) |
-| `codeField` | JavaScript | `"javascript"` / 13 | Код без области видимости (используется редко, устаревающий паттерн) |
-| `codeWithScopeField` | JavaScript with scope | `"javascriptWithScope"` / 15 | Код + захваченные переменные (deprecated с MongoDB 4.4) |
-| `symbolField` | Symbol | `"symbol"` / 14 | Устаревший тип, наследие драйверов других языков |
-| `dbPointerField` | DBPointer | `"dbPointer"` / 12 | Устаревшая ссылка на документ другой коллекции, замена — ручное поле-ссылка |
-| `minKeyField` | MinKey | `"minKey"` / -1 | Служебное значение, всегда меньше любого другого при сравнении |
-| `maxKeyField` | MaxKey | `"maxKey"` / 127 | Служебное значение, всегда больше любого другого |
-| `undefinedField` | Undefined | `"undefined"` / 6 | Устаревший тип, использовать `null` вместо него |
-| `homogeneousArray` | Array | `"array"` / 4 | Массив одного типа значений |
-| `heterogeneousArray` | Array | `"array"` / 4 | Массив разнотипных значений — допустимо в BSON |
-| `arrayOfDocuments` | Array of Object | — | Классический паттерн "один-ко-многим" через embedding |
-| `dynamicDictionary` | Object (как map) | `"object"` / 3 | Документ, используемый как словарь с непредсказуемыми ключами |
-| `polymorphicItems` | Array of Object с discriminator | — | Паттерн полиморфной коллекции: поле `kind` определяет остальную форму документа |
-| `geo.location` / `geo.area` | GeoJSON Point / Polygon | — | Требует индекс `2dsphere` для гео-запросов |
+| Поле                        | BSON-тип                        | Код `$type`                  | Описание                                                                        |
+| --------------------------- | ------------------------------- | ---------------------------- | ------------------------------------------------------------------------------- |
+| `stringField`               | String                          | `"string"` / 2               | UTF-8 строка                                                                    |
+| `int32Field`                | Int32                           | `"int"` / 16                 | 32-битное целое                                                                 |
+| `int64Field`                | Int64 (`NumberLong`)            | `"long"` / 18                | 64-битное целое, нужен для больших счётчиков                                    |
+| `doubleField`               | Double                          | `"double"` / 1               | 64-битное число с плавающей точкой (неточная арифметика)                        |
+| `decimalField`              | Decimal128 (`NumberDecimal`)    | `"decimal"` / 19             | Точная десятичная арифметика, для денег                                         |
+| `booleanField`              | Boolean                         | `"bool"` / 8                 | true/false                                                                      |
+| `nullField`                 | Null                            | `"null"` / 10                | Явное отсутствие значения (отличается от отсутствия поля)                       |
+| `dateField`                 | Date (`ISODate`)                | `"date"` / 9                 | Миллисекунды с эпохи Unix                                                       |
+| `timestampField`            | Timestamp                       | `"timestamp"` / 17           | Внутренний служебный тип (используется в oplog), НЕ для бизнес-дат              |
+| `regexField`                | Regular Expression              | `"regex"` / 11               | Хранимое регулярное выражение                                                   |
+| `binaryField`               | BinData subtype 0               | `"binData"` / 5              | Произвольные бинарные данные                                                    |
+| `uuidField`                 | BinData subtype 4               | `"binData"` / 5              | UUID в бинарном виде                                                            |
+| `objectIdField`             | ObjectId                        | `"objectId"` / 7             | 12-байтовый уникальный идентификатор (timestamp+machine+counter)                |
+| `codeField`                 | JavaScript                      | `"javascript"` / 13          | Код без области видимости (используется редко, устаревающий паттерн)            |
+| `codeWithScopeField`        | JavaScript with scope           | `"javascriptWithScope"` / 15 | Код + захваченные переменные (deprecated с MongoDB 4.4)                         |
+| `symbolField`               | Symbol                          | `"symbol"` / 14              | Устаревший тип, наследие драйверов других языков                                |
+| `dbPointerField`            | DBPointer                       | `"dbPointer"` / 12           | Устаревшая ссылка на документ другой коллекции, замена — ручное поле-ссылка     |
+| `minKeyField`               | MinKey                          | `"minKey"` / -1              | Служебное значение, всегда меньше любого другого при сравнении                  |
+| `maxKeyField`               | MaxKey                          | `"maxKey"` / 127             | Служебное значение, всегда больше любого другого                                |
+| `undefinedField`            | Undefined                       | `"undefined"` / 6            | Устаревший тип, использовать `null` вместо него                                 |
+| `homogeneousArray`          | Array                           | `"array"` / 4                | Массив одного типа значений                                                     |
+| `heterogeneousArray`        | Array                           | `"array"` / 4                | Массив разнотипных значений — допустимо в BSON                                  |
+| `arrayOfDocuments`          | Array of Object                 | —                            | Классический паттерн "один-ко-многим" через embedding                           |
+| `dynamicDictionary`         | Object (как map)                | `"object"` / 3               | Документ, используемый как словарь с непредсказуемыми ключами                   |
+| `polymorphicItems`          | Array of Object с discriminator | —                            | Паттерн полиморфной коллекции: поле `kind` определяет остальную форму документа |
+| `geo.location` / `geo.area` | GeoJSON Point / Polygon         | —                            | Требует индекс `2dsphere` для гео-запросов                                      |
 
 ---
 
