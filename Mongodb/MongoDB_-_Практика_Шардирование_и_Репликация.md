@@ -62,7 +62,7 @@ MONGO_ROOT_PASSWORD=change-me-please
 # современный docker compose (v2) его больше не требует.
 
 x-mongod-common: &mongod-common
-  image: mongo:8.0.28
+  image: mongo:8
   restart: unless-stopped
   networks: [mongo-cluster]
   volumes:
@@ -143,7 +143,7 @@ services:
 
   # ---- mongos-роутеры (2 шт. для отказоустойчивости уровня роутинга) ----
   mongos1:
-    image: mongo:8.0.28
+    image: mongo:8
     restart: unless-stopped
     networks: [mongo-cluster]
     command: mongos --configdb configrs/configsvr1:27019,configsvr2:27019,configsvr3:27019 --bind_ip_all --port 27017 --keyFile /etc/mongo-keyfile
@@ -168,7 +168,7 @@ services:
       shard2c: { condition: service_healthy }
 
   mongos2:
-    image: mongo:8.0.28
+    image: mongo:8
     restart: unless-stopped
     networks: [mongo-cluster]
     command: mongos --configdb configrs/configsvr1:27019,configsvr2:27019,configsvr3:27019 --bind_ip_all --port 27017 --keyFile /etc/mongo-keyfile
