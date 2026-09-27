@@ -31,17 +31,14 @@ graph TD
 ```
 
 ---
-
 ## 1. Подготовка keyFile для внутренней аутентификации
 
-Без этого шага кластер как бы «поднимется», но это будет учебная демонстрация без всякой защиты — в проде так делать нельзя: любой, кто может достучаться до портов mongod, получает полный доступ к данным.
+Без этого шага кластер как бы «поднимется», но это будет учебная демонстрация без всякой защиты — в проде
+так делать нельзя: любой, кто может достучаться до портов mongod, получает полный доступ к данным.
 
 ```bash
 mkdir -p secrets
 openssl rand -base64 756 > secrets/mongo-keyfile
-chmod 400 secrets/mongo-keyfile
-# UID 999 — это пользователь mongodb внутри официального образа mongo:8.0
-chown 999:999 secrets/mongo-keyfile
 ```
 
 Создайте `.env` рядом с `docker-compose.yml` (не коммитить в git!):
@@ -58,87 +55,103 @@ MONGO_ROOT_PASSWORD=change-me-please
 
 ```yaml
 # docker-compose.yml
-# Обратите внимание: без "version:" — ключ устарел в Compose Specification,
-# современный docker compose (v2) его больше не требует.
 
 x-mongod-common: &mongod-common
   image: mongo:8
   restart: unless-stopped
   networks: [mongo-cluster]
   volumes:
-    - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+    - mongo_keyfile:/etc/mongo-keyfile-dir:ro
   healthcheck:
     test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
     interval: 10s
     timeout: 5s
     retries: 5
     start_period: 20s
+  depends_on:
+    keyfile-init:
+      condition: service_completed_successfully
 
 services:
+  # ---- Одноразовый init-контейнер: копирует keyfile в volume и выставляет права 0400,
+  #      владелец UID 999 (mongodb) — делается ВНУТРИ контейнера, не зависит от хостовой ОС/FS ----
+  keyfile-init:
+    image: mongo:8
+    user: root
+    entrypoint: >
+      bash -c "
+        install -m 0400 -o 999 -g 999 /keyfile-src/mongo-keyfile /keyfile/mongo-keyfile &&
+        echo 'keyfile ready'
+      "
+    volumes:
+      - ./secrets/mongo-keyfile:/keyfile-src/mongo-keyfile:ro
+      - mongo_keyfile:/keyfile
+    restart: "no"
+
   # ---- Config server replica set (3 узла — обязательный минимум для прода) ----
   configsvr1:
     <<: *mongod-common
-    command: mongod --configsvr --replSet configrs --port 27019 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --configsvr --replSet configrs --port 27019 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - configsvr1_data:/data/db
 
   configsvr2:
     <<: *mongod-common
-    command: mongod --configsvr --replSet configrs --port 27019 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --configsvr --replSet configrs --port 27019 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - configsvr2_data:/data/db
 
   configsvr3:
     <<: *mongod-common
-    command: mongod --configsvr --replSet configrs --port 27019 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --configsvr --replSet configrs --port 27019 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - configsvr3_data:/data/db
 
   # ---- Shard 1 (replica set из 3 узлов, без арбитров) ----
   shard1a:
     <<: *mongod-common
-    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - shard1a_data:/data/db
 
   shard1b:
     <<: *mongod-common
-    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - shard1b_data:/data/db
 
   shard1c:
     <<: *mongod-common
-    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --shardsvr --replSet shard1rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - shard1c_data:/data/db
 
   # ---- Shard 2 (replica set из 3 узлов) ----
   shard2a:
     <<: *mongod-common
-    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - shard2a_data:/data/db
 
   shard2b:
     <<: *mongod-common
-    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - shard2b_data:/data/db
 
   shard2c:
     <<: *mongod-common
-    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile
+    command: mongod --shardsvr --replSet shard2rs --port 27018 --bind_ip_all --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
       - shard2c_data:/data/db
 
   # ---- mongos-роутеры (2 шт. для отказоустойчивости уровня роутинга) ----
@@ -146,9 +159,9 @@ services:
     image: mongo:8
     restart: unless-stopped
     networks: [mongo-cluster]
-    command: mongos --configdb configrs/configsvr1:27019,configsvr2:27019,configsvr3:27019 --bind_ip_all --port 27017 --keyFile /etc/mongo-keyfile
+    command: mongos --configdb configrs/configsvr1:27019,configsvr2:27019,configsvr3:27019 --bind_ip_all --port 27017 --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
     ports: ["27017:27017"]
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
@@ -157,6 +170,7 @@ services:
       retries: 5
       start_period: 20s
     depends_on:
+      keyfile-init: { condition: service_completed_successfully }
       configsvr1: { condition: service_healthy }
       configsvr2: { condition: service_healthy }
       configsvr3: { condition: service_healthy }
@@ -171,9 +185,9 @@ services:
     image: mongo:8
     restart: unless-stopped
     networks: [mongo-cluster]
-    command: mongos --configdb configrs/configsvr1:27019,configsvr2:27019,configsvr3:27019 --bind_ip_all --port 27017 --keyFile /etc/mongo-keyfile
+    command: mongos --configdb configrs/configsvr1:27019,configsvr2:27019,configsvr3:27019 --bind_ip_all --port 27017 --keyFile /etc/mongo-keyfile-dir/mongo-keyfile
     volumes:
-      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+      - mongo_keyfile:/etc/mongo-keyfile-dir:ro
     ports: ["27018:27017"]
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
@@ -182,6 +196,7 @@ services:
       retries: 5
       start_period: 20s
     depends_on:
+      keyfile-init: { condition: service_completed_successfully }
       mongos1: { condition: service_healthy }
 
 networks:
@@ -189,6 +204,7 @@ networks:
     driver: bridge
 
 volumes:
+  mongo_keyfile:
   configsvr1_data:
   configsvr2_data:
   configsvr3_data:
@@ -217,7 +233,8 @@ docker compose up -d
 ## 3. Инициализация replica sets
 
 Все команды выполняются **до** появления первого пользователя — на этом этапе ещё активно
-[localhost exception](https://www.mongodb.com/docs/manual/core/localhost-exception/): подключение с localhost без пароля разрешено ровно до момента создания первого пользователя.
+[localhost exception](https://www.mongodb.com/docs/manual/core/localhost-exception/): подключение с
+localhost без пароля разрешено ровно до момента создания первого пользователя.
 
 ### 3.1 Config server
 
