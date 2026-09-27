@@ -2,7 +2,6 @@
 tags: [mongodb, nosql, bson, datatypes, find, databases]
 created: 2026-09-22
 ---
-
 # MongoDB: типы данных BSON, сценарии вложенности, продвинутый find()
 
 Связанные заметки: [[MongoDB - Архитектура и CRUD]] · [[MongoDB - Практика Шардирование и Репликация]]

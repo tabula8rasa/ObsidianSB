@@ -2,7 +2,6 @@
 tags: [mongodb, nosql, databases, backend]
 created: 2026-09-22
 ---
-
 # MongoDB — архитектура, сущности, CRUD, индексы
 
 ## 1. Что такое MongoDB

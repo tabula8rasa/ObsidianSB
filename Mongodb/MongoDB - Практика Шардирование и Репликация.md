@@ -2,7 +2,6 @@
 tags: [mongodb, nosql, sharding, replication, docker, python, practice]
 created: 2026-09-22
 ---
-
 # MongoDB на практике: шардированный + реплицированный кластер и сервис на Python
 
 Связанная заметка: [[MongoDB - Архитектура и CRUD]]
