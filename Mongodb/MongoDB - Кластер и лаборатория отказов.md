@@ -42,7 +42,7 @@ Compose автоматически подготавливает keyfile, зап�
              +---------+---------+          +---------+---------+
              |         |         |          |         |         |
           shard1a   shard1b   shard1c    shard2a   shard2b   shard2c
-          P / S     P / S     P / S      P / S     P / S     P / S
+           P / S     P / S     P / S      P / S     P / S     P / S
 ```
 
 Целевая архиткетура выглядит как показано на схеме выше и разделяет 4 уровня:
@@ -1328,8 +1328,8 @@ mongo_lab/
 
 ```bash
 cd mongo_lab
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r mongo_lab/requirements.txt
+python3 -m venv .venv && source .venv/bin/activate.fish
+pip install -r requirements.txt
 python3 run_lab.py
 ```
 

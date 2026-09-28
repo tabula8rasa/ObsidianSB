@@ -26,7 +26,7 @@ Schema
 при необходимости writer schema сопоставляется с reader schema
 ```
 
-Самое важное отличие от [[Protocol Buffers]]:
+Самое важное отличие от [[01 Protobuf — кратко|Protocol Buffers]]:
 
 ```text
 Protobuf
