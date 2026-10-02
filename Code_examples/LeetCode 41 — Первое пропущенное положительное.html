@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LeetCode 41 — Первое пропущенное положительное</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #17233a;
+  --muted: #5b6880;
+  --line: #cfd6e2;
+  --accent: #2f5bea;
+  --accent-soft: #dfe7fd;
+  --ok: #17835a;
+  --ok-soft: #d8f0e5;
+  --swap: #b87500;
+  --swap-soft: #fbe9bd;
+  --bad: #c0392b;
+  --bad-soft: #f8dcd8;
+  --code-bg: #14203a;
+  --code-ink: #e6ecf8;
+  --font-body: "Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-head: "Unbounded", "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1626; --surface: #18223a; --ink: #e8edf7; --muted: #9aa8c2; --line: #2b3855;
+    --accent: #7b9dff; --accent-soft: #24335f; --ok: #5fd3a0; --ok-soft: #173b30;
+    --swap: #f2b84b; --swap-soft: #4a3a14; --bad: #ff8d7e; --bad-soft: #4a2420;
+    --code-bg: #0a1020; --code-ink: #e6ecf8;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1626; --surface: #18223a; --ink: #e8edf7; --muted: #9aa8c2; --line: #2b3855;
+  --accent: #7b9dff; --accent-soft: #24335f; --ok: #5fd3a0; --ok-soft: #173b30;
+  --swap: #f2b84b; --swap-soft: #4a3a14; --bad: #ff8d7e; --bad-soft: #4a2420;
+  --code-bg: #0a1020; --code-ink: #e6ecf8;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 18px; line-height: 1.55;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+#app { height: 100%; display: flex; flex-direction: column; }
+header.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px clamp(16px, 4vw, 40px); border-bottom: 1px solid var(--line);
+  font-size: 14px; color: var(--muted);
+}
+header.top b { color: var(--ink); font-weight: 600; }
+.theme-btn {
+  background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px;
+  cursor: pointer; font-size: 13px; color: var(--muted);
+}
+.theme-btn:hover { color: var(--ink); border-color: var(--muted); }
+
+main { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.slide { display: none; max-width: 1040px; margin: 0 auto; padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 40px) 40px; }
+.slide.active { display: block; }
+.slide h1, .slide h2 { font-family: var(--font-head); font-weight: 700; line-height: 1.15; margin: 0 0 20px; letter-spacing: -0.01em; }
+.slide h1 { font-size: clamp(30px, 6vw, 64px); }
+.slide h2 { font-size: clamp(24px, 4vw, 40px); }
+.slide h3 { font-size: 19px; margin: 0 0 6px; font-weight: 600; }
+.slide p { margin: 0 0 14px; max-width: 68ch; }
+.lead { font-size: clamp(19px, 2.3vw, 24px); color: var(--muted); max-width: 52ch; }
+.muted { color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+p code, li code, td code, h3 code, .callout code {
+  background: var(--accent-soft); padding: 1px 6px; border-radius: 5px;
+}
+.tag { display: inline-block; padding: 3px 12px; border-radius: 99px; font-size: 14px; font-weight: 600; background: var(--bad-soft); color: var(--bad); margin-bottom: 18px; }
+
+/* cells */
+.cells { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; }
+.cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cell .box {
+  width: clamp(46px, 9vw, 72px); height: clamp(46px, 9vw, 72px);
+  display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 8px;
+  background: var(--surface); font-family: var(--font-mono); font-weight: 600; font-size: clamp(17px, 2.8vw, 24px);
+  transition: background .25s, border-color .25s, color .25s;
+}
+.cell .idx { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.cell .idx2 { font-family: var(--font-mono); font-size: 12px; color: var(--muted); opacity: .8; }
+.cell.gap .box { border-style: dashed; border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.cell.ok .box { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.cell.cur .box { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.cell.swap .box { background: var(--swap-soft); border-color: var(--swap); color: var(--swap); }
+.cell.ans .box { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cell.dup .box { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.cell .ptr { height: 18px; font-size: 13px; font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+
+/* panels & tables */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.panel.good { border-color: var(--ok); }
+.panel.bad { border-color: var(--bad); }
+.panel p { margin-bottom: 8px; }
+.panel .cost { font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); font-size: 16px; vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 14px; }
+tr:last-child td { border-bottom: 0; }
+td.n { white-space: nowrap; }
+.bad-t { color: var(--bad); font-weight: 600; }
+.good-t { color: var(--ok); font-weight: 600; }
+
+ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; max-width: 70ch; }
+ol.steps li { counter-increment: s; position: relative; padding: 0 0 18px 52px; }
+ol.steps li::before {
+  content: counter(s); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 600; font-size: 16px;
+}
+ol.steps li:not(:last-child)::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 4px; width: 2px; background: var(--line); }
+
+.callout { border-left: 4px solid var(--accent); background: var(--surface); padding: 14px 18px; border-radius: 0 10px 10px 0; margin: 18px 0; max-width: 70ch; }
+.callout.warn { border-left-color: var(--bad); }
+
+/* visualizer */
+.viz { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px clamp(14px, 3vw, 26px); }
+.viz-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.chip {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 99px; padding: 5px 14px; cursor: pointer; font-size: 15px;
+  font-family: var(--font-mono);
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.custom { display: flex; gap: 6px; flex: 1 1 220px; min-width: 200px; }
+.custom input {
+  flex: 1; min-width: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); font-family: var(--font-mono); font-size: 15px;
+}
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 16px; cursor: pointer; font-weight: 500;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { color: #fff; filter: brightness(1.1); }
+.viz-ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.viz-ctrl .count { margin-left: auto; font-family: var(--font-mono); font-size: 14px; color: var(--muted); }
+.phase { font-size: 14px; font-weight: 600; color: var(--accent); min-height: 22px; }
+.msg { min-height: 84px; font-size: 18px; margin: 4px 0 6px; max-width: none !important; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; color: var(--muted); margin-top: 14px; }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 2px solid; vertical-align: -2px; margin-right: 6px; }
+
+/* code */
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+pre.code {
+  background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 18px 20px; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 15px; line-height: 1.6; margin: 0; max-width: 100%;
+}
+pre.code .c { color: #8fa3c8; }
+pre.code .k { color: #9db8ff; }
+pre.code[hidden] { display: none; }
+
+/* bottom nav */
+footer.nav {
+  display: flex; align-items: center; gap: 12px; padding: 10px clamp(16px, 4vw, 40px);
+  border-top: 1px solid var(--line); background: var(--bg);
+}
+.dots { flex: 1; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--muted); background: none; padding: 0; cursor: pointer; }
+.dot.active { background: var(--accent); border-color: var(--accent); }
+.dot.done { background: var(--muted); }
+.counter { font-family: var(--font-mono); font-size: 14px; color: var(--muted); min-width: 52px; text-align: right; }
+.progress { height: 3px; background: var(--line); }
+.progress > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .counter { display: none; }
+  .btn { padding: 8px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <span><b>LeetCode 41</b> · First Missing Positive</span>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Переключить тему">Тема</button>
+  </header>
+  <div class="progress"><div id="bar"></div></div>
+
+  <main id="main" tabindex="-1">
+
+    <!-- 1. Title -->
+    <section class="slide" aria-label="Титул">
+      <span class="tag">Hard</span>
+      <h1>Первое пропущенное положительное</h1>
+      <p class="lead">Решение за O(n) времени и O(1) памяти: пометки хранятся прямо в знаках чисел самого массива.</p>
+      <div class="cells" aria-hidden="true">
+        <div class="cell ok"><div class="box">−3</div><div class="idx">idx 0</div></div>
+        <div class="cell gap"><div class="box">4</div><div class="idx">idx 1</div></div>
+        <div class="cell ok"><div class="box">−5</div><div class="idx">idx 2</div></div>
+        <div class="cell ok"><div class="box">−1</div><div class="idx">idx 3</div></div>
+      </div>
+      <p class="muted">Минус — «число встречалось». Плюс в ячейке 1 значит, что числа 2 в массиве нет.</p>
+      <p class="muted">Листайте стрелками ← → или кнопками внизу.</p>
+    </section>
+
+    <!-- 2. Problem -->
+    <section class="slide" aria-label="Условие">
+      <h2>Условие</h2>
+      <p>Дан неотсортированный массив целых чисел <code>nums</code>. Нужно вернуть наименьшее положительное целое число, которого в нём нет.</p>
+      <div class="callout warn"><b>Ограничение:</b> время <code>O(n)</code> и дополнительная память <code>O(1)</code>.</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>nums</th><th>Ответ</th><th>Почему</th></tr></thead>
+          <tbody>
+            <tr><td class="n"><code>[1, 2, 0]</code></td><td><code>3</code></td><td>Есть 1 и 2, значит первое пропущенное — 3.</td></tr>
+            <tr><td class="n"><code>[3, 4, -1, 1]</code></td><td><code>2</code></td><td>Единица есть, двойки нет.</td></tr>
+            <tr><td class="n"><code>[7, 8, 9, 11, 12]</code></td><td><code>1</code></td><td>Единицы нет — ответ сразу 1.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. Observation -->
+    <section class="slide" aria-label="Ключевое наблюдение">
+      <h2>Ответ всегда в диапазоне от 1 до n + 1</h2>
+      <p>Пусть в массиве <code>n</code> элементов. Они могут «закрыть» не больше <code>n</code> разных положительных чисел.</p>
+      <div class="grid2">
+        <div class="panel good">
+          <h3>Все числа 1…n на месте</h3>
+          <p>Тогда массив — перестановка этих чисел, и ответ равен <code>n + 1</code>.</p>
+          <div class="cells" style="margin:8px 0 0" aria-hidden="true">
+            <div class="cell ok"><div class="box">2</div></div>
+            <div class="cell ok"><div class="box">3</div></div>
+            <div class="cell ok"><div class="box">1</div></div>
+          </div>
+          <p class="muted" style="margin-top:10px">n = 3 → ответ 4</p>
+        </div>
+        <div class="panel">
+          <h3>Хотя бы одного числа нет</h3>
+          <p>Тогда пропуск находится где-то внутри диапазона <code>1…n</code>.</p>
+          <div class="cells" style="margin:8px 0 0" aria-hidden="true">
+            <div class="cell ok"><div class="box">1</div></div>
+            <div class="cell"><div class="box">7</div></div>
+            <div class="cell ok"><div class="box">3</div></div>
+          </div>
+          <p class="muted" style="margin-top:10px">n = 3 → ответ 2</p>
+        </div>
+      </div>
+      <div class="callout"><b>Вывод:</b> всё, что меньше 1 или больше n, нам не интересно. Такие числа можно игнорировать.</div>
+    </section>
+
+    <!-- 4. Naive -->
+    <section class="slide" aria-label="Простые решения">
+      <h2>Очевидные решения не подходят</h2>
+      <div class="grid2">
+        <div class="panel bad">
+          <h3>Сортировка</h3>
+          <p>Отсортировать и пройти по порядку, ища разрыв.</p>
+          <p class="cost">время O(n log n) · память O(1)</p>
+          <p class="bad-t">Слишком медленно</p>
+        </div>
+        <div class="panel bad">
+          <h3>Хеш-множество</h3>
+          <p>Положить все числа в <code>set</code>, затем проверять 1, 2, 3, …</p>
+          <p class="cost">время O(n) · память O(n)</p>
+          <p class="bad-t">Слишком много памяти</p>
+        </div>
+        <div class="panel bad">
+          <h3>Массив флагов</h3>
+          <p>Завести <code>seen[1..n]</code> и отмечать найденные числа.</p>
+          <p class="cost">время O(n) · память O(n)</p>
+          <p class="bad-t">Слишком много памяти</p>
+        </div>
+      </div>
+      <p style="margin-top:18px">Массив флагов — это почти то, что нужно. Остаётся придумать, где хранить флаги, не тратя дополнительную память.</p>
+    </section>
+
+    <!-- 5. Idea -->
+    <section class="slide" aria-label="Идея">
+      <h2>Идея: флаги хранятся в знаках</h2>
+      <p>Ячейка с индексом <code>k</code> отвечает за число <code>k + 1</code>. Если оно встретилось, делаем значение в этой ячейке отрицательным.</p>
+      <div class="cells" aria-hidden="true">
+        <div class="cell ok"><div class="box">−3</div><div class="idx">idx 0</div><div class="idx2">число 1</div></div>
+        <div class="cell gap"><div class="box">4</div><div class="idx">idx 1</div><div class="idx2">число 2</div></div>
+        <div class="cell ok"><div class="box">−5</div><div class="idx">idx 2</div><div class="idx2">число 3</div></div>
+        <div class="cell ok"><div class="box">−1</div><div class="idx">idx 3</div><div class="idx2">число 4</div></div>
+      </div>
+      <p>Модуль значения не теряется: прочитать исходное число можно через <code>abs(...)</code>. Поэтому смена знака ничего не портит.</p>
+      <p>В конце ищем первую ячейку без пометки. Если это ячейка <code>k</code>, ответ <code>k + 1</code>.</p>
+      <div class="callout">У приёма есть две проблемы: в массиве уже могут быть отрицательные числа, а ноль нельзя «сделать отрицательным». Алгоритм решает обе.</div>
+    </section>
+
+    <!-- 6. Algorithm -->
+    <section class="slide" aria-label="Алгоритм">
+      <h2>Алгоритм: три прохода</h2>
+      <ol class="steps">
+        <li>
+          <h3>Обнуляем отрицательные числа</h3>
+          <p>Они нам не нужны, а минус должен остаться свободным для пометок. Заменяем каждое <code>nums[i] &lt; 0</code> на <code>0</code>.</p>
+        </li>
+        <li>
+          <h3>Расставляем пометки</h3>
+          <p>Для каждого <code>i</code> берём <code>value = abs(nums[i])</code>. Если <code>1 ≤ value ≤ n</code>, смотрим в ячейку <code>nums[value − 1]</code>:</p>
+        </li>
+      </ol>
+      <div class="table-wrap" style="margin-left:52px;width:calc(100% - 52px)">
+        <table>
+          <thead><tr><th>Что лежит в ячейке</th><th>Что делаем</th><th>Зачем</th></tr></thead>
+          <tbody>
+            <tr><td class="n"><code>0</code></td><td>пишем <code>−(n + 1)</code></td><td>ноль не имеет знака, а ложное число больше <code>n</code> потом отбросится</td></tr>
+            <tr><td class="n"><code>&gt; 0</code></td><td>умножаем на <code>−1</code></td><td>ставим пометку, модуль сохраняется</td></tr>
+            <tr><td class="n"><code>&lt; 0</code></td><td>ничего</td><td>число уже отмечено (дубликат)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ol class="steps" style="counter-reset: s 2">
+        <li>
+          <h3>Ищем первую ячейку без пометки</h3>
+          <p>Идём по <code>i</code> от 1 до <code>n</code>. Если <code>nums[i − 1] ≥ 0</code>, числа <code>i</code> в массиве нет — это ответ.</p>
+        </li>
+        <li>
+          <h3>Если все ячейки отмечены</h3>
+          <p>В массиве есть все числа от 1 до <code>n</code>, ответ <code>n + 1</code>.</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 7. Visualizer -->
+    <section class="slide" aria-label="Пошаговый разбор">
+      <h2>Пошаговый разбор</h2>
+      <div class="viz">
+        <div class="viz-top">
+          <span class="muted" style="font-size:14px">Пример:</span>
+          <span id="presets" style="display:contents"></span>
+          <form class="custom" id="customForm" autocomplete="off">
+            <input id="customInput" type="text" inputmode="text" aria-label="Свой массив через запятую" placeholder="свой массив: 2, 1, 5, 3">
+            <button class="btn" type="submit">Задать</button>
+          </form>
+        </div>
+        <div class="cells" id="vizCells" role="img" aria-label="Состояние массива"></div>
+        <div class="phase" id="vizPhase"></div>
+        <p class="msg" id="vizMsg" aria-live="polite"></p>
+        <div class="viz-ctrl">
+          <button class="btn" id="vPrev" type="button">← Шаг назад</button>
+          <button class="btn primary" id="vNext" type="button">Шаг вперёд →</button>
+          <button class="btn" id="vPlay" type="button">▶ Авто</button>
+          <button class="btn" id="vReset" type="button">Сначала</button>
+          <span class="count" id="vCount"></span>
+        </div>
+        <div class="legend" aria-hidden="true">
+          <span><i style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)"></i>текущий индекс i</span>
+          <span><i style="border-color:var(--swap);background:var(--swap-soft)"></i>ячейка, которую меняем (t)</span>
+          <span><i style="border-color:var(--ok);background:var(--ok-soft)"></i>есть пометка (минус)</span>
+          <span><i style="border-color:var(--bad);background:var(--bad-soft)"></i>уже отмечено</span>
+          <span><i style="border-color:var(--accent);background:var(--accent)"></i>ответ</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Code -->
+    <section class="slide" aria-label="Код">
+      <h2>Код</h2>
+      <div class="tabs" role="tablist" id="codeTabs">
+        <button class="chip" role="tab" aria-pressed="true" data-lang="py" type="button">Python</button>
+        <button class="chip" role="tab" aria-pressed="false" data-lang="js" type="button">JavaScript</button>
+        <button class="chip" role="tab" aria-pressed="false" data-lang="cpp" type="button">C++</button>
+      </div>
+<pre class="code" data-lang="py"><code><span class="k">class</span> Solution:
+    <span class="k">def</span> firstMissingPositive(self, nums: list[int]) -&gt; int:
+
+        length = len(nums)
+
+        <span class="c"># 1. убираем отрицательные: знак «минус» теперь свободен для пометок</span>
+        <span class="k">for</span> i <span class="k">in</span> range(length):
+            <span class="k">if</span> nums[i] &lt; 0:
+                nums[i] = 0
+
+        <span class="c"># 2. ставим пометки: ячейка value - 1 отвечает за число value</span>
+        <span class="k">for</span> i <span class="k">in</span> range(length):
+
+            value = abs(nums[i])
+
+            <span class="k">if</span> 1 &lt;= value &lt;= length:
+                <span class="k">if</span> nums[value - 1] == 0:
+                    nums[value - 1] = -1 * (length + 1)
+                <span class="k">elif</span> nums[value - 1] &gt; 0:
+                    nums[value - 1] *= -1
+
+        <span class="c"># 3. первая ячейка без минуса — ответ</span>
+        <span class="k">for</span> i <span class="k">in</span> range(1, length + 1):
+            <span class="k">if</span> nums[i - 1] &gt;= 0:
+                <span class="k">return</span> i
+
+        <span class="k">return</span> length + 1</code></pre>
+<pre class="code" data-lang="js" hidden><code><span class="k">function</span> firstMissingPositive(nums) {
+  <span class="k">const</span> length = nums.length;
+
+  <span class="c">// 1. убираем отрицательные</span>
+  <span class="k">for</span> (<span class="k">let</span> i = 0; i &lt; length; i++) {
+    <span class="k">if</span> (nums[i] &lt; 0) nums[i] = 0;
+  }
+
+  <span class="c">// 2. ставим пометки</span>
+  <span class="k">for</span> (<span class="k">let</span> i = 0; i &lt; length; i++) {
+    <span class="k">const</span> value = Math.abs(nums[i]);
+
+    <span class="k">if</span> (value &gt;= 1 &amp;&amp; value &lt;= length) {
+      <span class="k">if</span> (nums[value - 1] === 0) {
+        nums[value - 1] = -(length + 1);
+      } <span class="k">else if</span> (nums[value - 1] &gt; 0) {
+        nums[value - 1] *= -1;
+      }
+    }
+  }
+
+  <span class="c">// 3. первая ячейка без минуса — ответ</span>
+  <span class="k">for</span> (<span class="k">let</span> i = 1; i &lt;= length; i++) {
+    <span class="k">if</span> (nums[i - 1] &gt;= 0) <span class="k">return</span> i;
+  }
+
+  <span class="k">return</span> length + 1;
+}</code></pre>
+<pre class="code" data-lang="cpp" hidden><code><span class="k">class</span> Solution {
+<span class="k">public</span>:
+    <span class="k">int</span> firstMissingPositive(vector&lt;<span class="k">int</span>&gt;&amp; nums) {
+        <span class="k">int</span> length = nums.size();
+
+        <span class="c">// 1. убираем отрицательные</span>
+        <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; length; i++) {
+            <span class="k">if</span> (nums[i] &lt; 0) nums[i] = 0;
+        }
+
+        <span class="c">// 2. ставим пометки</span>
+        <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; length; i++) {
+            <span class="k">int</span> value = abs(nums[i]);
+
+            <span class="k">if</span> (value &gt;= 1 &amp;&amp; value &lt;= length) {
+                <span class="k">if</span> (nums[value - 1] == 0) {
+                    nums[value - 1] = -(length + 1);
+                } <span class="k">else if</span> (nums[value - 1] &gt; 0) {
+                    nums[value - 1] *= -1;
+                }
+            }
+        }
+
+        <span class="c">// 3. первая ячейка без минуса — ответ</span>
+        <span class="k">for</span> (<span class="k">int</span> i = 1; i &lt;= length; i++) {
+            <span class="k">if</span> (nums[i - 1] &gt;= 0) <span class="k">return</span> i;
+        }
+
+        <span class="k">return</span> length + 1;
+    }
+};</code></pre>
+    </section>
+
+    <!-- 9. Pitfalls -->
+    <section class="slide" aria-label="Подводные камни">
+      <h2>Почему именно так</h2>
+      <div class="grid2">
+        <div class="panel bad">
+          <h3>Зачем обнулять отрицательные</h3>
+          <p>Если оставить их как есть, исходный минус нельзя будет отличить от нашей пометки. Ответ получится неверным.</p>
+        </div>
+        <div class="panel bad">
+          <h3>Зачем писать −(n + 1) вместо 0</h3>
+          <p>Ноль нельзя сделать «отрицательным». Значение <code>−(n + 1)</code> по модулю больше <code>n</code>, поэтому позже оно не будет принято за настоящее число и ничего не пометит.</p>
+        </div>
+        <div class="panel bad">
+          <h3>Зачем брать abs</h3>
+          <p>К моменту чтения ячейка уже может быть помечена. Модуль возвращает исходное число, и его нужно обработать, как и остальные.</p>
+        </div>
+        <div class="panel bad">
+          <h3>Почему в конце проверка ≥ 0</h3>
+          <p>Ячейка без пометки хранит либо положительное число, либо ноль. Оба варианта значат, что соответствующего числа в массиве не было.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. Complexity -->
+    <section class="slide" aria-label="Сложность">
+      <h2>Сложность</h2>
+      <div class="grid2">
+        <div class="panel good">
+          <h3>Время: O(n)</h3>
+          <p>Три независимых прохода по массиву, каждый делает константную работу на элемент.</p>
+        </div>
+        <div class="panel good">
+          <h3>Память: O(1)</h3>
+          <p>Новых структур нет. Пометки хранятся в знаках элементов самого массива, плюс несколько переменных.</p>
+        </div>
+      </div>
+      <div class="callout"><b>Цена решения:</b> входной массив изменяется. Если его нужно сохранить, придётся сделать копию, и тогда память станет <code>O(n)</code>.</div>
+    </section>
+
+    <!-- 11. Summary -->
+    <section class="slide" aria-label="Итог">
+      <h2>Итог</h2>
+      <ol class="steps">
+        <li><h3>Ответ лежит в диапазоне 1…n + 1</h3><p>Остальные числа можно игнорировать.</p></li>
+        <li><h3>Знак числа — это флаг</h3><p>Ячейка <code>k</code> отвечает за число <code>k + 1</code>: минус означает «встречалось».</p></li>
+        <li><h3>Сначала зачищаем массив</h3><p>Отрицательные числа превращаем в нули, а пометку для нуля пишем как <code>−(n + 1)</code>.</p></li>
+        <li><h3>Первая ячейка с <code>nums[i − 1] ≥ 0</code> даёт ответ <code>i</code></h3><p>Если таких нет — ответ <code>n + 1</code>. Итого <code>O(n)</code> по времени и <code>O(1)</code> по памяти.</p></li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer class="nav">
+    <button class="btn" id="prev" type="button" aria-label="Предыдущий слайд">← Назад</button>
+    <div class="dots" id="dots"></div>
+    <span class="counter" id="counter"></span>
+    <button class="btn primary" id="next" type="button" aria-label="Следующий слайд">Далее →</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  /* ---------- Slides ---------- */
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var main = document.getElementById('main');
+  var dotsBox = document.getElementById('dots');
+  var cur = 0;
+
+  slides.forEach(function (s, i) {
+    var d = document.createElement('button');
+    d.type = 'button'; d.className = 'dot';
+    d.setAttribute('aria-label', 'Слайд ' + (i + 1) + ': ' + s.getAttribute('aria-label'));
+    d.addEventListener('click', function () { go(i); });
+    dotsBox.appendChild(d);
+  });
+  var dots = Array.prototype.slice.call(dotsBox.children);
+
+  function go(i, noHash) {
+    if (i < 0 || i >= slides.length) return;
+    cur = i;
+    slides.forEach(function (s, k) {
+      s.classList.toggle('active', k === i);
+      dots[k].classList.toggle('active', k === i);
+      dots[k].classList.toggle('done', k < i);
+    });
+    document.getElementById('prev').disabled = i === 0;
+    document.getElementById('next').disabled = i === slides.length - 1;
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+    document.getElementById('bar').style.width = ((i + 1) / slides.length * 100) + '%';
+    main.scrollTop = 0;
+    if (!noHash) { try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {} }
+  }
+  document.getElementById('prev').addEventListener('click', function () { go(cur - 1); });
+  document.getElementById('next').addEventListener('click', function () { go(cur + 1); });
+  document.addEventListener('keydown', function (e) {
+    var t = e.target && e.target.tagName;
+    if (t === 'INPUT' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') { go(0); }
+    else if (e.key === 'End') { go(slides.length - 1); }
+  });
+  var tx = null, ty = null;
+  main.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  main.addEventListener('touchend', function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) go(cur + (dx < 0 ? 1 : -1));
+    tx = null;
+  }, { passive: true });
+
+  var h = parseInt((location.hash || '').replace('#', ''), 10);
+  go(h >= 1 && h <= slides.length ? h - 1 : 0, true);
+
+  /* ---------- Theme ---------- */
+  var root = document.documentElement;
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+  });
+
+  /* ---------- Code tabs ---------- */
+  var tabs = document.querySelectorAll('#codeTabs .chip');
+  var blocks = document.querySelectorAll('pre.code');
+  Array.prototype.forEach.call(tabs, function (t) {
+    t.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (x) { x.setAttribute('aria-pressed', x === t ? 'true' : 'false'); });
+      Array.prototype.forEach.call(blocks, function (b) { b.hidden = b.getAttribute('data-lang') !== t.getAttribute('data-lang'); });
+    });
+  });
+
+  /* ---------- Visualizer ---------- */
+  var PRESETS = [
+    { label: '[3, 4, -1, 1]', arr: [3, 4, -1, 1] },
+    { label: '[1, 2, 0]', arr: [1, 2, 0] },
+    { label: '[7, 8, 9, 11, 12]', arr: [7, 8, 9, 11, 12] },
+    { label: '[1, 1, 2] с дубликатом', arr: [1, 1, 2] }
+  ];
+  var steps = [], pos = 0, timer = null;
+
+  function fmt(x) { return x < 0 ? '\u2212' + (-x) : String(x); }
+
+  function build(input) {
+    var a = input.slice(), n = a.length, out = [], i, k, v, t, old;
+    var P1 = 'Проход 1 · убираем отрицательные';
+    var P2 = 'Проход 2 · ставим пометки';
+    var P3 = 'Проход 3 · ищем ячейку без пометки';
+
+    out.push({ arr: a.slice(), no: 0, phase: 'Старт',
+      msg: 'Массив из ' + n + ' элементов. Ячейка k будет отвечать за число k + 1, а пометка «число встречалось» будет храниться в виде минуса.' });
+
+    for (i = 0; i < n; i++) {
+      if (a[i] < 0) {
+        old = a[i]; a[i] = 0;
+        out.push({ arr: a.slice(), no: 1, i: i, kind: 'zero', phase: P1,
+          msg: 'i = ' + i + ': число ' + fmt(old) + ' отрицательное. Заменяем его на 0, чтобы минус остался свободным для пометок.' });
+      } else {
+        out.push({ arr: a.slice(), no: 1, i: i, phase: P1,
+          msg: 'i = ' + i + ': число ' + a[i] + ' не отрицательное, оставляем.' });
+      }
+    }
+
+    for (i = 0; i < n; i++) {
+      v = Math.abs(a[i]);
+      if (v < 1 || v > n) {
+        out.push({ arr: a.slice(), no: 2, i: i, phase: P2,
+          msg: 'i = ' + i + ': abs(' + fmt(a[i]) + ') = ' + v + ' вне диапазона 1…' + n + '. Пометка не нужна.' });
+        continue;
+      }
+      t = v - 1;
+      if (a[t] === 0) {
+        a[t] = -(n + 1);
+        out.push({ arr: a.slice(), no: 2, i: i, t: t, kind: 'change', phase: P2,
+          msg: 'i = ' + i + ': value = ' + v + ', отмечаем ячейку ' + t + '. Там 0, его нельзя сделать отрицательным, поэтому пишем \u2212(n + 1) = ' + fmt(a[t]) + '. По модулю это больше n, значит позже его не примут за число.' });
+      } else if (a[t] > 0) {
+        old = a[t]; a[t] = -old;
+        out.push({ arr: a.slice(), no: 2, i: i, t: t, kind: 'change', phase: P2,
+          msg: 'i = ' + i + ': value = ' + v + ', отмечаем ячейку ' + t + '. Там ' + old + ' > 0, умножаем на \u22121 и получаем ' + fmt(a[t]) + '.' });
+      } else {
+        out.push({ arr: a.slice(), no: 2, i: i, t: t, kind: 'already', phase: P2,
+          msg: 'i = ' + i + ': value = ' + v + ', ячейка ' + t + ' уже отрицательная (' + fmt(a[t]) + '). Число ' + v + ' уже отмечено, ничего не делаем.' });
+      }
+    }
+
+    for (k = 1; k <= n; k++) {
+      if (a[k - 1] >= 0) {
+        out.push({ arr: a.slice(), no: 3, i: k - 1, ans: k - 1, kind: 'ans', phase: P3,
+          msg: 'nums[' + (k - 1) + '] = ' + a[k - 1] + ' \u2265 0, пометки нет. Числа ' + k + ' в массиве не было. Ответ — ' + k + '.' });
+        return out;
+      }
+      out.push({ arr: a.slice(), no: 3, i: k - 1, phase: P3,
+        msg: 'nums[' + (k - 1) + '] = ' + fmt(a[k - 1]) + ' < 0, число ' + k + ' в массиве есть. Идём дальше.' });
+    }
+    out.push({ arr: a.slice(), no: 3, ans: n, kind: 'ans', phase: P3,
+      msg: 'Все ячейки отмечены, в массиве есть все числа от 1 до ' + n + '. Ответ — ' + (n + 1) + '.' });
+    return out;
+  }
+
+  var elCells = document.getElementById('vizCells');
+  var elPhase = document.getElementById('vizPhase');
+  var elMsg = document.getElementById('vizMsg');
+  var elCount = document.getElementById('vCount');
+  var bPrev = document.getElementById('vPrev'), bNext = document.getElementById('vNext');
+  var bPlay = document.getElementById('vPlay'), bReset = document.getElementById('vReset');
+
+  function render() {
+    var s = steps[pos], n = s.arr.length, html = '', k, cls, ptr;
+    for (k = 0; k < n; k++) {
+      cls = 'cell';
+      if (s.no >= 2 && s.arr[k] < 0) cls += ' ok';
+      if (s.kind === 'zero' && s.i === k) cls = 'cell swap';
+      if (s.kind === 'change' && s.t === k) cls = 'cell swap';
+      if (s.kind === 'already' && s.t === k) cls = 'cell dup';
+      if (s.i === k && s.kind !== 'zero') cls += ' cur';
+      if (s.i === k && s.kind === 'zero') cls += ' cur';
+      if (s.kind === 'ans' && s.ans === k) cls = 'cell ans';
+      ptr = '';
+      if (s.i === k && s.t === k) ptr = 'i = t';
+      else if (s.i === k) ptr = 'i';
+      else if (s.t === k) ptr = 't';
+      html += '<div class="' + cls + '"><div class="ptr">' + ptr + '</div><div class="box">' + fmt(s.arr[k]) +
+        '</div><div class="idx">idx ' + k + '</div><div class="idx2">число ' + (k + 1) + '</div></div>';
+    }
+    if (s.kind === 'ans' && s.ans === n) {
+      html += '<div class="cell ans"><div class="ptr"></div><div class="box">?</div><div class="idx">idx ' + n + '</div><div class="idx2">число ' + (n + 1) + '</div></div>';
+    }
+    elCells.innerHTML = html;
+    elCells.setAttribute('aria-label', 'Массив: ' + s.arr.map(fmt).join(', '));
+    elPhase.textContent = s.phase;
+    elMsg.textContent = s.msg;
+    elCount.textContent = 'шаг ' + (pos + 1) + ' из ' + steps.length;
+    bPrev.disabled = pos === 0;
+    bNext.disabled = pos === steps.length - 1;
+    bReset.disabled = pos === 0;
+    if (pos === steps.length - 1) stop();
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } bPlay.textContent = '▶ Авто'; }
+  function load(arr) { stop(); steps = build(arr); pos = 0; render(); }
+
+  bNext.addEventListener('click', function () { stop(); if (pos < steps.length - 1) { pos++; render(); } });
+  bPrev.addEventListener('click', function () { stop(); if (pos > 0) { pos--; render(); } });
+  bReset.addEventListener('click', function () { stop(); pos = 0; render(); });
+  bPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (pos === steps.length - 1) { pos = 0; render(); }
+    bPlay.textContent = '❚❚ Пауза';
+    timer = setInterval(function () {
+      if (pos < steps.length - 1) { pos++; render(); } else { stop(); }
+    }, 1500);
+  });
+
+  var presetBox = document.getElementById('presets');
+  var presetBtns = PRESETS.map(function (p, idx) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = p.label;
+    b.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
+    b.addEventListener('click', function () {
+      presetBtns.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      load(p.arr);
+    });
+    presetBox.appendChild(b);
+    return b;
+  });
+
+  document.getElementById('customForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var raw = document.getElementById('customInput').value;
+    var parts = raw.split(/[\s,;]+/).filter(function (x) { return x !== ''; });
+    var nums = parts.map(Number);
+    var valid = nums.length >= 1 && nums.length <= 9 && nums.every(function (x) { return Number.isInteger(x) && Math.abs(x) < 1000; });
+    if (!valid) {
+      elMsg.textContent = 'Введите от 1 до 9 целых чисел через запятую, например: 2, 1, 5, 3.';
+      return;
+    }
+    presetBtns.forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+    load(nums);
+  });
+
+  load(PRESETS[0].arr);
+})();
+</script>
+</body>
+</html>
