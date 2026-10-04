@@ -7,7 +7,6 @@ tags:
   - python
   - llm
 ---
-
 # Токенизация и BPE — разбор `SimpleBPETokenizer`
 
 ## 1. Что такое токенизация
