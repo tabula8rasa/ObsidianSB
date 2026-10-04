@@ -1,261 +1,277 @@
-# PXF и gpfdist в Greenplum: принципы, архитектура и когда что использовать
+---
+tags: [greenplum, pxf, gpfdist,etl]
+created: 2026-10-04
+---
 
-## Коротко
+# PXF и gpfdist в Greenplum
 
-**PXF** — это слой доступа Greenplum к внешним источникам данных. Он нужен, когда Greenplum должен читать или писать данные **напрямую** во внешнюю систему: Oracle, PostgreSQL, MySQL, S3, HDFS и другие. Для SQL-источников PXF обычно работает через JDBC и умеет распараллеливать чтение источника.
-
-**gpfdist** — это отдельный файловый демон. Он не ходит в Oracle и не знает ничего о БД-источниках. Его задача — быстро и параллельно раздавать Greenplum данные из файлов или принимать данные из Greenplum в файлы через external tables.
+> [!summary] Коротко
+> 
+> - **PXF** — Greenplum сам ходит во внешнюю систему (Oracle, PostgreSQL, MySQL, S3, HDFS) через коннектор.
+> - **gpfdist** — параллельный файловый сервер: Greenplum забирает данные из файлов или отдаёт их в файлы через external tables.
+> 
+> **Прямой доступ к источнику → PXF. Быстрый массовый перенос через файлы → gpfdist.**
 
 ---
 
-## 1. Что такое PXF
+## 1. Сравнение
 
-PXF — это framework для federated queries и параллельного высокопроизводительного доступа Greenplum к внешним источникам через встроенные коннекторы. Важная идея в том, что внешний источник отображается в Greenplum как external table, и Greenplum может читать его без предварительной полной загрузки данных внутрь своей БД.
-
-Для SQL-источников PXF использует JDBC-коннектор. Это значит, что Greenplum через PXF может обращаться к Oracle, MySQL, PostgreSQL и другим SQL-БД как к внешнему источнику данных. Для Oracle в документации и связанных материалах отдельно отмечена поддержка Oracle-specific parallel query execution.
-
-### Как PXF работает на уровне архитектуры
-
-PXF не является одним центральным прокси, через который обязательно проходит весь поток данных. Он работает как распределённый сервис рядом с Greenplum: фрагменты внешнего набора данных распределяются между сегментами Greenplum, а PXF-инстанс на segment host обслуживает работу сегментов этого хоста. В официальных материалах прямо сказано, что PXF distributes fragments among Greenplum segments, а PXF instance on a segment host spawns a thread for each segment on that host.
-
-Из этого следует практическая модель работы:
-
-- coordinator строит и dispatch’ит план;
-    
-- сегменты Greenplum получают свою часть работы;
-    
-- PXF на segment hosts идёт во внешний источник;
-    
-- данные читаются параллельно, а не “через один центральный поток”. Это вывод из архитектурного описания PXF и распределения fragments по сегментам.
-    
-
-### Параллелизм в PXF
-
-PXF умеет распараллеливать JDBC-чтение через `PARTITION_BY`. При этом важно понимать, что `PARTITION_BY` в PXF — это не про физическое партиционирование таблицы в Oracle и не про распределение данных в Greenplum. Это подсказка PXF, что внешний набор данных можно разбить на части и читать параллельно; каждая часть читается отдельным PXF thread.
-
-### Что умеет PXF полезного
-
-Для JDBC-коннектора PXF поддерживает как минимум:
-
-- column projection;
-    
-- filter pushdown;
-    
-- named queries;
-    
-- partitioned JDBC reads.
-    
-
-Практический смысл этого такой: если можно отфильтровать и сузить выборку на стороне Oracle, PXF может сократить объём передаваемых данных и не тащить в Greenplum всё подряд.
+|Критерий|PXF|gpfdist|
+|---|---|---|
+|Что это|Framework-коннектор к внешним источникам|Файловый HTTP-демон для external tables|
+|Источник данных|БД, S3, HDFS, Hive и др.|Только файлы (CSV, TXT и т. п.)|
+|Промежуточная выгрузка|Не нужна|Нужна (источник → файлы)|
+|Как читает|JDBC и др. коннекторы, фрагменты по сегментам|HTTP, сегменты тянут блоки напрямую|
+|Pushdown фильтров|Да (filter pushdown, column projection)|Нет — читаются файлы целиком|
+|Нагрузка на источник|Прямая, параллельные JDBC-сессии|Только на момент выгрузки файлов|
+|Пик производительности|Ограничен источником и JDBC|Ограничен диском и сетью ETL-хостов|
+|Типичный сценарий|Федеративные запросы, инкременты, выборки|Bulk load больших фактовых таблиц|
 
 ---
 
-## 2. Что такое gpfdist
+## 2. PXF
 
-`gpfdist` — это parallel file distribution program. Он используется readable external tables и `gpload`, чтобы **раздавать файлы всем сегментам Greenplum параллельно**, а writable external tables используют его в обратную сторону — чтобы принимать параллельные выходные потоки от сегментов и писать их в файл.
+**PXF (Platform Extension Framework)** — слой доступа Greenplum к внешним данным. Источник отображается как external table, и Greenplum читает его без предварительной полной загрузки внутрь БД. Для SQL-источников используется **JDBC-коннектор** (Oracle, MySQL, PostgreSQL и др.); для Oracle отдельно поддерживается parallel query.
 
-То есть gpfdist — это не “коннектор к Oracle”, а именно **файловый сервер для external tables**. Если данные уже лежат в CSV/TXT и похожих форматах, gpfdist позволяет загрузить их в Greenplum очень быстро.
+### Архитектура
 
-### Как gpfdist работает на уровне архитектуры
+PXF — не центральный прокси, через который идёт весь поток. Это распределённый сервис рядом с сегментами:
 
-По документации Cloudberry:
+- фрагменты (fragments) внешнего набора данных распределяются между сегментами Greenplum;
+- PXF-инстанс на каждом segment host обслуживает сегменты этого хоста (отдельный поток на сегмент);
+- данные читаются параллельно, а не одним потоком.
 
-- `gpfdist` запускается на хосте **не coordinator и не standby coordinator**;
-    
-- он отдаёт файлы из указанного каталога сегментам Greenplum;
-    
-- все сегменты могут читать или писать external table data параллельно.
-    
+```mermaid
+flowchart LR
+    C[Coordinator<br/>строит и рассылает план] --> S1[Сегмент 1]
+    C --> S2[Сегмент 2]
+    C --> S3[Сегмент N]
+    S1 --> P1[PXF на segment host]
+    S2 --> P1
+    S3 --> P2[PXF на segment host]
+    P1 -->|JDBC| O[(Oracle / внешний источник)]
+    P2 -->|JDBC| O
+```
 
-Для readable external table gpfdist читает записи из файлов, упаковывает их в блоки и отдаёт сегментам по запросу. Сегменты распаковывают строки и распределяют их дальше согласно distribution policy таблицы. Для writable external table сегменты, наоборот, отправляют блоки строк в gpfdist, а он пишет их в файл.
+### Параллелизм: `PARTITION_BY`
 
-### Что важно про размещение gpfdist
+`PARTITION_BY` — это **подсказка PXF**, что внешний набор можно разбить на части и читать параллельно (каждая часть — отдельный поток PXF).
 
-gpfdist не обязан работать именно на Oracle-сервере. Он должен работать на том хосте, где лежат выгружаемые файлы и который доступен по сети всем сегментам Greenplum. Типичный вариант — ETL/staging host. Если файлы выгружаются прямо на Oracle-сервер и этот хост доступен сегментам, gpfdist можно поднять и там, но по документации ключевое ограничение — не coordinator и не standby coordinator.
+> [!warning] Это не про физическое партиционирование `PARTITION_BY` не связан ни с партициями таблицы в Oracle, ни с распределением данных в Greenplum.
 
-### Параллелизм в gpfdist
+> [!important] Без `PARTITION_BY` чтение идёт одним потоком Для JDBC без партиционирования весь запрос читается одной сессией, и параллелизм Greenplum не используется. Для больших таблиц `PARTITION_BY` практически обязателен.
 
-Cloudberry прямо пишет, что `gpfdist` — fastest way to load large fact tables, потому что он обслуживает external data files по HTTP параллельно для сегментов. Одна инстанция может обслуживать порядка 200 MB/s, а процессов `gpfdist` можно запускать много, распределяя файлы и сетевые интерфейсы.
+Поддерживаются партиции по типам `int`, `date`, `enum`.
+
+### Что умеет JDBC-коннектор
+
+- **Column projection** — читаются только нужные колонки.
+- **Filter pushdown** — `WHERE` отправляется в источник, лишнее не передаётся по сети.
+- **Named queries** — внешняя таблица строится поверх произвольного SQL-запроса, лежащего в конфигурации сервера.
+- **Partitioned reads** — параллельное чтение через `PARTITION_BY`.
+
+### Пример
+
+Конфигурация сервера (`$PXF_BASE/servers/oracle_prod/jdbc-site.xml`) задаёт драйвер, URL, логин и пароль. JDBC-драйвер Oracle кладётся в `$PXF_BASE/lib`; после изменений конфигурацию нужно синхронизировать на сегменты (`pxf cluster sync`) и перезапустить PXF.
+
+```sql
+CREATE EXTERNAL TABLE ext_orders (
+    id      bigint,
+    dt      date,
+    amount  numeric
+)
+LOCATION ('pxf://SALES.ORDERS?PROFILE=Jdbc&SERVER=oracle_prod'
+          '&PARTITION_BY=id:int&RANGE=1:100000000&INTERVAL=1000000')
+FORMAT 'CUSTOM' (FORMATTER='pxfwritable_import');
+
+INSERT INTO orders SELECT * FROM ext_orders WHERE dt >= '2026-01-01';
+```
+
+Здесь `RANGE` задаёт диапазон значений ключа, а `INTERVAL` — размер одной партиции (в примере получится 100 партиций).
+
+### Ограничения
+
+PXF упирается не только в Greenplum, но и в источник:
+
+- число допустимых JDBC-соединений;
+- производительность Oracle (в том числе parallel query);
+- пропускная способность сети;
+- качество ключа для `PARTITION_BY` (неравномерный ключ → перекос по потокам).
+
+При плохом ключе или слабом источнике масштабирование будет хуже ожидаемого.
 
 ---
 
-## 3. Главное различие по смыслу
+## 3. gpfdist
+
+**gpfdist** — parallel file distribution program. Его используют readable external tables и `gpload`, чтобы раздавать файлы всем сегментам параллельно. Writable external tables используют его в обратную сторону: принимают параллельные потоки от сегментов и пишут их в файл.
+
+> [!info] Важно gpfdist — **не коннектор к Oracle**. Он ничего не знает об источниках-БД и работает только с файлами.
+
+### Архитектура
+
+- запускается на хосте, который **не является coordinator или standby coordinator**;
+- отдаёт файлы из указанного каталога сегментам;
+- все сегменты читают или пишут параллельно.
+
+**Чтение (readable external table):** gpfdist читает записи из файлов, упаковывает в блоки и отдаёт сегментам по запросу. Сегменты распаковывают строки и распределяют дальше по distribution policy целевой таблицы.
+
+**Запись (writable external table):** сегменты отправляют блоки строк в gpfdist, он пишет их в файл.
+
+### Где размещать
+
+Не обязательно на сервере Oracle. Нужен хост, где лежат файлы и который доступен по сети **всем сегментам**. Обычно это ETL/staging-хост. Если файлы выгружаются на Oracle-сервер и он доступен сегментам, gpfdist можно поднять и там.
+
+### Производительность
+
+Документация называет gpfdist самым быстрым способом загрузки больших фактовых таблиц. Одна инстанция отдаёт порядка **200 МБ/с**, а инстанций можно запускать много — на разных хостах, дисках и сетевых интерфейсах.
+
+### Пример
+
+```bash
+# на ETL-хосте
+gpfdist -d /data/staging -p 8081 -l /var/log/gpfdist.log &
+```
+
+```sql
+-- чтение
+CREATE EXTERNAL TABLE ext_orders_file (LIKE orders)
+LOCATION ('gpfdist://etl-host1:8081/orders_*.csv',
+          'gpfdist://etl-host2:8081/orders_*.csv')
+FORMAT 'CSV' (DELIMITER ',' HEADER)
+LOG ERRORS SEGMENT REJECT LIMIT 100 ROWS;
+
+INSERT INTO orders SELECT * FROM ext_orders_file;
+
+-- запись (выгрузка из Greenplum в файлы)
+CREATE WRITABLE EXTERNAL TABLE ext_orders_out (LIKE orders)
+LOCATION ('gpfdist://etl-host1:8081/orders_out.csv')
+FORMAT 'CSV'
+DISTRIBUTED BY (id);
+```
+
+> [!tip] Практические советы
+> 
+> - Режь большой файл на несколько равных частей и раскладывай по разным gpfdist — так нет узкого места по диску и сети.
+> - `LOG ERRORS SEGMENT REJECT LIMIT` позволяет не падать на единичных битых строках.
+> - Для шифрования трафика есть `gpfdists` (HTTPS).
+> - Для декларативной загрузки по YAML-конфигу есть утилита `gpload` — она поверх gpfdist.
+
+---
+
+## 4. Загрузка в таблицу `DISTRIBUTED BY (id)`
+
+Ни PXF, ни gpfdist **не гарантируют**, что сегмент читает именно те строки, которые потом останутся у него по хэшу `id`.
+
+### gpfdist
+
+1. Coordinator парсит `INSERT INTO target SELECT * FROM ext_table`.
+2. План отправляется на primary-сегменты.
+3. Сегменты сами подключаются к gpfdist и читают данные параллельно.
+4. Сегменты парсят строки и считают хэш по distribution key.
+5. Строка пересылается на целевой сегмент.
+
+Coordinator **не является data pump**, но и сегменты читают не «свои» строки: они берут любую часть потока, а потом отправляют строку по хэшу на нужный сегмент.
 
 ### PXF
 
-Используется, когда Greenplum должен работать **с внешней системой как с системой**: БД, S3, HDFS и т.д. Это именно коннекторный слой.
-### gpfdist
+PXF распределяет fragments между сегментами, а `PARTITION_BY` задаёт параллельное чтение отдельными потоками. Расположение данных в удалённой БД не учитывается.
 
-Используется, когда данные уже **представлены в виде файлов**, и нужно быстро и параллельно загрузить их в Greenplum или выгрузить из Greenplum. Это файловый демон, а не коннектор к БД. 
+> [!note] Вывод по PXF — логический В документации нет отдельной формулировки про Redistribute Motion для PXF. Это следствие архитектуры: PXF читает источник параллельно по фрагментам, поэтому Greenplum при необходимости перераспределяет строки по хэшу `id`.
 
----
+```mermaid
+flowchart LR
+    SRC["Файлы (gpfdist)<br/>или фрагменты (PXF)"] --> R["Сегменты читают<br/>любую часть потока"]
+    R -->|"hash(id)"| M[Redistribute Motion]
+    M --> T["Целевые сегменты<br/>таблицы DISTRIBUTED BY id"]
+```
 
-## 4. Что происходит при загрузке в таблицу `DISTRIBUTED BY (id)`
-
-Это важный момент.
-
-Ни PXF, ни gpfdist в обычной схеме не гарантируют, что “каждый сегмент сразу читает только те строки, которые потом останутся у него по `id`”.
-
-### Для gpfdist
-
-Документация описывает процесс так:
-
-1. coordinator парсит `INSERT INTO target SELECT * FROM ext_table`;
-    
-2. план dispatch’ится на primary segments;
-    
-3. сегменты сами подключаются к `gpfdist` и читают данные параллельно;
-    
-4. сегменты парсят строки, считают hash по distribution key;
-    
-5. строка пересылается на destination segment.
-    
-
-Это значит, что **координатор не является data pump** для такого потока, но и сегменты не обязательно читают “свои” строки. Они могут читать любую часть потока, а потом уже отправлять строку на нужный сегмент по хэшу `id`.
-
-### Для PXF
-
-PXF распределяет fragments внешнего источника между сегментами, а `PARTITION_BY` нужен для параллельного чтения JDBC-источника отдельными потоками. Но документация про `PARTITION_BY` прямо подчёркивает, что это не про физическое размещение данных в удалённой БД, а про возможность параллельно обработать внешний dataset.
-
-Из этого следует практический вывод: при `INSERT` в таблицу `DISTRIBUTED BY (id)` **PXF обычно тоже читает внешний источник параллельно “по фрагментам”, а затем Greenplum при необходимости перераспределяет строки между сегментами по хэшу `id`**. Это логический вывод из того, как PXF описывает fragments и partitioned JDBC reads; это не отдельная цитата из документации про Redistribute Motion, а вывод из архитектуры.
+> [!tip] Как проверить Посмотри `EXPLAIN INSERT INTO ... SELECT * FROM ext_table` — в плане будет узел **Redistribute Motion**.
 
 ---
 
-## 5. Когда использовать PXF
+## 5. Когда что использовать
 
-PXF стоит использовать, когда:
+### PXF, если
 
-- нужен **прямой доступ** из Greenplum к Oracle или другой внешней БД;
-    
-- не хочется делать промежуточный staging в файлы;
-    
-- нужно читать только часть данных, а не всю таблицу;
-    
-- хочется использовать pushdown фильтров и projection;
-    
-- источник допускает несколько параллельных JDBC-соединений и выдержит такое чтение.
-    
+- нужен **прямой доступ** к Oracle или другой внешней системе;
+- не хочется промежуточного staging в файлы;
+- нужна только часть данных (фильтры, колонки, инкременты);
+- нужен pushdown фильтров и projection;
+- источник выдержит несколько параллельных JDBC-соединений.
 
-### Типичный сценарий для PXF
+Сценарий: `Oracle → PXF/JDBC → external table → INSERT … SELECT`
 
-`Oracle -> PXF/JDBC -> Greenplum external table -> INSERT/SELECT`
+### gpfdist, если
 
-Это хороший вариант для интеграций, federated query и аккуратной выборки данных без промежуточной выгрузки.
+- данные уже лежат в файлах;
+- нужен **максимальный throughput** для bulk load;
+- допустим двухшаговый pipeline (выгрузка → загрузка);
+- можно разложить файлы по нескольким ETL-хостам, дискам и интерфейсам.
 
-### Ограничения PXF
+Сценарий: `Oracle → unload в CSV/TXT → gpfdist → external table → INSERT INTO target`
 
-PXF упирается не только в Greenplum, но и в возможности внешнего источника: JDBC, Oracle parallel query, количество соединений, пропускная способность сети, эффективность partitioning-ключа. При плохом `PARTITION_BY` или слабом источнике масштабирование может быть хуже ожидаемого. Это практический вывод из модели fragments, JDBC partitioning и Oracle parallel query support.
+**Почему gpfdist быстрее на больших объёмах:**
 
----
-
-## 6. Когда использовать gpfdist
-
-gpfdist стоит использовать, когда:
-
-- данные уже есть в виде файлов;
-    
-- нужна **максимально быстрая bulk load** больших таблиц;
-    
-- допустим двухшаговый pipeline: сначала выгрузить из источника в файлы, потом загрузить в Greenplum;
-    
-- есть возможность разложить файлы по нескольким ETL-хостам, дискам и сетевым интерфейсам.
-
-### Типичный сценарий для gpfdist
-
-`Oracle -> unload в CSV/TXT -> gpfdist -> external table -> INSERT INTO target`
-
-Это уже не прямой доступ к Oracle, а staged loading через файлы. Зато именно для больших факт-таблиц документация прямо рекомендует external tables с `gpfdist` как самый быстрый путь загрузки.
-
-### Почему gpfdist часто быстрее на очень больших объёмах
-
-Причина в том, что:
-
-- чтение идёт с файлов, а не через JDBC;
-    
-- сегменты Greenplum читают параллельно напрямую;
-    
-- можно запускать несколько `gpfdist` на нескольких хостах и интерфейсах;
-    
-- можно заранее порезать один большой файл на равные куски и убрать узкие места сети и диска.
-    
+- чтение идёт из файлов, а не через JDBC;
+- сегменты читают параллельно и напрямую;
+- можно запустить несколько gpfdist на разных хостах и интерфейсах;
+- файлы можно заранее нарезать на равные куски.
 
 ---
 
-## 7. Что лучше для большой таблицы
+## 6. Выбор для большой таблицы
 
-### Если нужен прямой путь без staging
+```mermaid
+flowchart TD
+    A[Нужно перенести данные в Greenplum] --> B{Источник — файлы?}
+    B -->|Да| G[gpfdist]
+    B -->|Нет, БД| C{Нужен инкремент,<br/>фильтр или регулярное чтение?}
+    C -->|Да| P[PXF]
+    C -->|Нет, полный дамп| D{Объём — сотни ГБ<br/>и больше?}
+    D -->|Да| E{Можно ли нагружать<br/>источник долгими JDBC-сессиями?}
+    D -->|Нет| P
+    E -->|Нет| F[Unload в файлы + gpfdist]
+    E -->|Да| P
+```
 
-Лучше **PXF**. Он проще по архитектуре интеграции: Greenplum читает Oracle напрямую через JDBC-коннектор PXF. Это удобно, когда нужен не полный дамп, а регулярное чтение части данных, инкременты или фильтрованные выборки.
+- **Прямой путь без staging** → PXF. Проще интеграция, удобно для частичных выборок и инкрементов.
+- **Максимальный throughput** → `Oracle unload → files → gpfdist → Greenplum`. Для больших фактовых таблиц обычно быстрее и стабильнее, чем гигантский объём через JDBC.
 
-### Если нужен максимальный throughput для bulk load
-
-Часто лучше схема **Oracle unload -> files -> gpfdist -> Greenplum**. Для больших факт-таблиц file-based external loading через `gpfdist` обычно быстрее и стабильнее, чем тянуть гигантский объём через JDBC. Документация Cloudberry прямо выделяет `gpfdist` как fastest way to load large fact tables.
-
-### Практический вывод
-
-- **PXF** — когда нужен удобный и прямой доступ к Oracle.
-    
-- **gpfdist** — когда нужен максимально быстрый массовый перенос, и промежуточные файлы допустимы.
-    
-
----
-
-## 8. Простая формулировка для запоминания
-
-**PXF** — это “Greenplum ходит во внешний источник через коннектор”.  
-**gpfdist** — это “Greenplum забирает или отдаёт данные через параллельный файловый сервер”.
+> [!tip] Чем выгружать из Oracle в файлы SQL*Plus (`SPOOL`), SQLcl (`SET SQLFORMAT CSV`), либо скрипт на Python с `python-oracledb`. Параллелить выгрузку можно по диапазонам ключа или ROWID.
 
 ---
 
-## 9. Мои практические правила выбора
+## 7. Правила выбора
 
-1. Если источник — **Oracle/Postgres/MySQL**, и нужно читать **напрямую**, начинаю с **PXF**.
-    
-2. Если объём очень большой и цель — **быстрый перенос сотен гигабайт или терабайтов**, чаще смотрю в сторону **выгрузки в файлы и `gpfdist`**.
-3. Если нужно уменьшить нагрузку на Oracle и избежать длинных JDBC-сессий, staged pipeline через файлы часто безопаснее. Это инженерный вывод из того, что PXF читает источник напрямую, а `gpfdist` работает уже с выгруженными файлами.
-    
-4. Если целевая таблица `DISTRIBUTED BY (id)`, надо помнить: **и PXF, и gpfdist обычно читают данные параллельно не по “родному” хэшу Greenplum, поэтому при вставке возможно перераспределение строк между сегментами**. Для `gpfdist` это прямо описано, для PXF это логический вывод из fragment-based чтения.
-    
+1. Источник — **Oracle / PostgreSQL / MySQL** и нужно читать напрямую → начинаю с **PXF**.
+2. Объём очень большой (сотни ГБ — терабайты), цель — быстрый перенос → **выгрузка в файлы + gpfdist**.
+3. Нужно снизить нагрузку на Oracle и избежать длинных JDBC-сессий → staged pipeline через файлы часто безопаснее (инженерный вывод: PXF читает источник напрямую, gpfdist работает с уже выгруженными файлами).
+4. Целевая таблица `DISTRIBUTED BY (id)` → и PXF, и gpfdist читают не по «родному» хэшу Greenplum, поэтому возможно перераспределение строк между сегментами.
+
+### Чек-лист перед запуском
+
+- [ ] Для PXF: настроен сервер, драйвер в `lib`, конфигурация синхронизирована на сегменты
+- [ ] Для PXF: выбран равномерный ключ `PARTITION_BY` и разумный `INTERVAL`
+- [ ] Для gpfdist: хост доступен всем сегментам и не является coordinator / standby
+- [ ] Для gpfdist: файлы разложены по нескольким инстансам / хостам
+- [ ] Проверен `EXPLAIN` (Motion-узлы, число параллельных потоков)
+- [ ] Согласована допустимая нагрузка на источник (число сессий, окно выгрузки)
+
 ---
 
-## Источники:
-- Apache Airflow issue `#49646` — Worker always return Invalid auth token when setting up demo environment using docker compose. ([GitHub](https://github.com/apache/airflow/issues/49646 "Worker always return Invalid auth token when setting up demo environment using docker compose · Issue #49646 · apache/airflow · GitHub"))
-    
-- Airflow Configuration Reference. ([Apache Airflow](https://airflow.apache.org/docs/apache-airflow/stable/configurations-ref.html "Configuration Reference — Airflow 3.1.8 Documentation"))
-    
-- Apache Airflow issue `#59373` — `Invalid auth token: Signature verification failed` in docker compose stack with celery worker. ([GitHub](https://github.com/apache/airflow/issues/59373 "'Invalid auth token: Signature verification failed' in docker compose stack with celery worker · Issue #59373 · apache/airflow · GitHub"))
-    
-- Official Airflow `docker-compose.yaml`. ([GitHub](https://github.com/apache/airflow/blob/main/airflow-core/docs/howto/docker-compose/docker-compose.yaml "airflow/airflow-core/docs/howto/docker-compose/docker-compose.yaml at main · apache/airflow · GitHub"))
-    
-- Upgrading to Airflow 3. ([Apache Airflow](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html "Upgrading to Airflow 3 — Airflow 3.1.8 Documentation"))
-    
-- Apache Airflow Task SDK Concepts. ([Apache Airflow](https://airflow.apache.org/docs/task-sdk/stable/concepts.html "Concepts — Apache Airflow Task SDK Documentation"))
-    
-- Oracle Java Tutorial — JDBC Introduction. ([Oracle Documentation](https://docs.oracle.com/javase/tutorial/jdbc/overview/index.html "Lesson: JDBC Introduction (The Java™ Tutorials > JDBC Database Access)"))
-    
-- Oracle Java Tutorial — Establishing a Connection with JDBC. ([Oracle Documentation](https://docs.oracle.com/javase/tutorial/jdbc/basics/connecting.html "Establishing a Connection (The Java™ Tutorials >        
-    JDBC Database Access > JDBC Basics)"))
-    
-- Go standard package `database/sql`. ([Go Packages](https://pkg.go.dev/database/sql "sql package - database/sql - Go Packages"))
-    
-- Oracle — Developing Python Applications for Oracle Database. ([Oracle](https://www.oracle.com/database/technologies/appdev/python/quickstartpythononprem.html "Developing Python Applications for Oracle Database"))
-    
-- SQLAlchemy Unified Tutorial. ([SQLAlchemy Documentation](https://docs.sqlalchemy.org/tutorial/index.html "SQLAlchemy Unified Tutorial
-    —
-    SQLAlchemy 2.0 Documentation"))
-    
-- VMware Tanzu blog — Platform Extension Framework (PXF): Enabling Parallel Query Processing Over Heterogeneous Data Sources In Greenplum. ([VMware Blogs](https://blogs.vmware.com/tanzu/platform-extension-framework-pxf-enabling-parallel-query-processing-over-heterogeneous-data-sources-in-greenplum/ "Platform Extension Framework (PXF): Enabling Parallel Query Processing Over Heterogeneous Data Sources In Greenplum"))
-    
-- VMware Tanzu blog — Greenplum PXF for federated queries gets data quickly from diverse sources. ([VMware Blogs](https://blogs.vmware.com/tanzu/greenplum-pxf-for-federated-queries-gets-data-quickly-from-diverse-sources/ "VMware Tanzu Greenplum PXF for federated queries gets data quickly from diverse sources - Tanzu"))
-    
-- Apache Cloudberry — Load Data Using `gpfdist`. ([Apache Cloudberry](https://cloudberry.apache.org/docs/data-loading/load-data-using-gpfdist "Load Data Using gpfdist | Apache Cloudberry (Incubating)"))
-    
-- Apache Cloudberry — `gpfdist`. ([Apache Cloudberry](https://cloudberry.apache.org/docs/sys-utilities/gpfdist/ "gpfdist | Apache Cloudberry (Incubating)"))
-    
-- Apache Cloudberry — Load Data Best Practices. ([Apache Cloudberry](https://cloudberry.apache.org/docs/next/tutorials/best-practices/load-data-best-practices "Load Data | Apache Cloudberry (Incubating)"))
-    
-- Apache Cloudberry — About Parallel Data Loading. ([Apache Cloudberry](https://cloudberry.apache.org/docs/next/tutorials/product-principles/about-data-loading/ "About Parallel Data Loading | Apache Cloudberry (Incubating)"))
-    
-- Apache Cloudberry — Crash Course. ([Apache Cloudberry](https://cloudberry.apache.org/docs/next/tutorials/crash-course/ "Apache Cloudberry Crash Course | Apache Cloudberry (Incubating)"))
-    
-- Apache Cloudberry — `COPY`. ([Apache Cloudberry](https://cloudberry.apache.org/docs/1.x/sql-stmts/copy/ "COPY | Apache Cloudberry (Incubating)"))
+## 8. Как запомнить
+
+> **PXF** — Greenplum ходит во внешний источник через коннектор. **gpfdist** — Greenplum забирает или отдаёт данные через параллельный файловый сервер.
+
+---
+
+## Источники
+
+- VMware Tanzu — [Platform Extension Framework (PXF): Enabling Parallel Query Processing Over Heterogeneous Data Sources In Greenplum](https://blogs.vmware.com/tanzu/platform-extension-framework-pxf-enabling-parallel-query-processing-over-heterogeneous-data-sources-in-greenplum/)
+- VMware Tanzu — [Greenplum PXF for federated queries gets data quickly from diverse sources](https://blogs.vmware.com/tanzu/greenplum-pxf-for-federated-queries-gets-data-quickly-from-diverse-sources/)
+- Apache Cloudberry — [Load Data Using gpfdist](https://cloudberry.apache.org/docs/data-loading/load-data-using-gpfdist)
+- Apache Cloudberry — [gpfdist (утилита)](https://cloudberry.apache.org/docs/sys-utilities/gpfdist/)
+- Apache Cloudberry — [Load Data Best Practices](https://cloudberry.apache.org/docs/next/tutorials/best-practices/load-data-best-practices)
+
+> [!info] О Cloudberry Apache Cloudberry — родственный Greenplum проект. Механика gpfdist и external tables в нём совпадает с Greenplum, поэтому его документация подходит как справочник.
