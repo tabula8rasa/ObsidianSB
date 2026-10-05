@@ -13,3 +13,6 @@
 | Идеи и стиль (концепты) | Dribbble, Dprofile                 |
 | Примеры реальных сайтов | Awwwards, Lapa Ninja, Landingfolio |
 | Готовый код (через MCP) | OriginKit, 21st.dev                |
+
+
+https://skillry.dev/
