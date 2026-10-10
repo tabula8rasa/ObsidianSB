@@ -16,3 +16,4 @@
 
 
 https://skillry.dev/
+https://www.embla-carousel.com/docs/examples/predefined
