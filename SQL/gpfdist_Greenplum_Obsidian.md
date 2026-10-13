@@ -2,6 +2,8 @@
 tags: [greenplum, gpfdist, etl, external-tables]
 aliases: [Greenplum Parallel File Server]
 ---
+[[gpfdist_interactive_demo.html]]
+
 # gpfdist — параллельная загрузка/выгрузка файлов
 
 > [!summary] Суть
