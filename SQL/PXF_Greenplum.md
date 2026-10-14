@@ -160,7 +160,4 @@ INSERT INTO orders SELECT * FROM ext_orders;
 - [Greengage: конфигурация PXF](https://greengagedb.org/en/docs-pxf/current/pxf_configuration_files.html) — TTL `10s`, `pxf.max.threads`, конфигурационные файлы.
 - [Greengage: пример S3 CSV](https://greengagedb.org/ru/docs-gg/current/example_s3_text.html) — `PROFILE=s3:csv`, `SKIP_HEADER_COUNT`.
 
-> [!note] Версионность
-> Статья и исходный код описывают конкретные реализации PXF/Greenplum. **Точную формулу назначения фрагментов и доступные настройки необходимо сверять с исходным кодом установленной версии.**
-
 Связано: [[gpfdist_Greenplum|gpfdist — параллельный файловый сервер]].
