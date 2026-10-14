@@ -4,7 +4,9 @@ aliases: [Platform Extension Framework]
 ---
 [[pxf_ingestion_visual_lab.html]]
 [[Federated-Queries_Session.pdf]]
+[[PXF-paper.pdf]]
 https://blogs.vmware.com/tanzu/greenplum-pxf-for-federated-queries-gets-data-quickly-from-diverse-sources/
+
 > [!summary] Суть
 > **PXF (Platform Extension Framework)** позволяет Primary-сегментам Greenplum параллельно читать внешние источники (S3/MinIO, HDFS, Hive, JDBC) через Java-сервисы PXF.
 
