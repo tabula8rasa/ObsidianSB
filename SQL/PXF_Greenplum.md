@@ -3,6 +3,7 @@ tags: [greenplum, pxf, etl, mpp]
 aliases: [Platform Extension Framework]
 ---
 [[pxf_ingestion_visual_lab.html]]
+[[Federated-Queries_Session.pdf]]
 
 > [!summary] Суть
 > **PXF (Platform Extension Framework)** позволяет Primary-сегментам Greenplum параллельно читать внешние источники (S3/MinIO, HDFS, Hive, JDBC) через Java-сервисы PXF.
