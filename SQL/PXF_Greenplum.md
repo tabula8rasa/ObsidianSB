@@ -4,12 +4,13 @@ aliases: [Platform Extension Framework]
 ---
 [[pxf_ingestion_visual_lab.html]]
 [[Federated-Queries_Session.pdf]]
-
+https://blogs.vmware.com/tanzu/greenplum-pxf-for-federated-queries-gets-data-quickly-from-diverse-sources/
 > [!summary] Суть
 > **PXF (Platform Extension Framework)** позволяет Primary-сегментам Greenplum параллельно читать внешние источники (S3/MinIO, HDFS, Hive, JDBC) через Java-сервисы PXF.
 
 ## Архитектура
 
+![[Pasted image 20261014144450.png|800]]
 - **Coordinator** принимает SQL, строит план и распределяет его между сегментами.
 - **Primary Segment** выполняет `External Scan`, запрашивает фрагменты, получает строки и участвует в `INSERT`.
 - **PXF Extension** — нативная часть Greenplum для обмена с PXF по HTTP/REST.
@@ -157,7 +158,6 @@ INSERT INTO orders SELECT * FROM ext_orders;
 ## Источники и применимость
 
 - [PXF: Enabling Parallel Query Processing](https://blogs.vmware.com/tanzu/wp-content/uploads/sites/154/2025/04/pxf-paper.pdf) — разделы **4.1, 4.2–4.4, 5.6** (fragmentation calls, компоненты, локальный кэш).
-- [Опубликованный `pxf_fragment.c`](https://www.seaxiang.com/blog/d9b34a68d02b4b74bdd33a81efa6e496) — функция `FilterFragmentsForSegment()` и формула со смещением.
 - [Greengage: конфигурация PXF](https://greengagedb.org/en/docs-pxf/current/pxf_configuration_files.html) — TTL `10s`, `pxf.max.threads`, конфигурационные файлы.
 - [Greengage: пример S3 CSV](https://greengagedb.org/ru/docs-gg/current/example_s3_text.html) — `PROFILE=s3:csv`, `SKIP_HEADER_COUNT`.
 
