@@ -4,10 +4,8 @@ aliases: [Greenplum Parallel File Server]
 ---
 [[gpfdist_interactive_demo.html]]
 
-# gpfdist — параллельная загрузка/выгрузка файлов
-
 > [!summary] Суть
-> **gpfdist** — отдельный файловый сервер (утилита Greenplum), который по HTTP обслуживает **несколько Primary-сегментов одновременно**. В отличие от PXF, это **не Java-фреймворк коннекторов**: никаких `Fragmenter`, `Accessor`, `Resolver`, `PROFILE`, `SERVER` здесь нет.
+> **gpfdist** — отдельный файловый сервер (утилита Greenplum), который по HTTP обслуживает **несколько Primary-сегментов одновременно**.
 
 ## Как это работает
 
