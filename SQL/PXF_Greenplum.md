@@ -5,10 +5,8 @@ aliases: [Platform Extension Framework]
 
 [[pxf_ingestion_visual_lab.html]]
 
-# PXF — параллельный доступ к внешним данным
-
-> [!summary] Суть
-> **PXF (Platform Extension Framework)** — расширение Greenplum для параллельного чтения и записи во внешние системы (S3/MinIO, HDFS, Hive, JDBC и др.). **Coordinator управляет SQL, но полный поток входных данных не проходит через него.**
+> [!summary] 
+> **PXF (Platform Extension Framework)** — расширение Greenplum для параллельного чтения и записи во внешние системы (S3/MinIO, HDFS, Hive, JDBC и др.)
 
 **PXF в Greenplum: коротко**
 
