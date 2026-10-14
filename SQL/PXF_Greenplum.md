@@ -2,221 +2,101 @@
 tags: [greenplum, pxf, etl, mpp]
 aliases: [Platform Extension Framework]
 ---
-
 [[pxf_ingestion_visual_lab.html]]
 
-> [!summary] 
-> **PXF (Platform Extension Framework)** — расширение Greenplum для параллельного чтения и записи во внешние системы (S3/MinIO, HDFS, Hive, JDBC и др.)
+> [!summary] Суть
+> **PXF (Platform Extension Framework)** позволяет Primary-сегментам Greenplum параллельно читать внешние источники (S3/MinIO, HDFS, Hive, JDBC) через Java-сервисы PXF.
 
-**PXF в Greenplum: коротко**
-
-- **Два разных процесса.** Чтение из источника (PXF) и распределение по хэшу ключа (Redistribute Motion перед Insert) не связаны. PXF не кладёт строку сразу на «нужный» сегмент.
-- **Один PXF JVM на хост.** Он обслуживает все сегменты хоста: поток на сегмент (и на слайс) на запрос. Лимит потоков `pxf.max.threads` (по умолчанию 200), больше сегментов означает больше потоков и нагрузки на heap.
-- **Fragmenter** (в PXF Server) формирует список фрагментов по метаданным источника. Число фрагментов определяет источник (сплиты HDFS, партиции JDBC), а не число сегментов.
-- **Fragmentation call:** каждый сегмент вызывает локальный PXF. Первый поток на хосте выполняет Fragmenter, остальные берут результат из кэша (ключ: сервер, транзакция, путь, предикаты; живёт 10 секунд). То есть фрагментация идёт один раз на хост на запрос.
-- **Выбор своих фрагментов** делает сегмент: список фрагментов делится по модулю (знает число сегментов и свой id). Точная формула в источниках не подтверждена.
-- **Bridge call:** по одному вызову на фрагмент, отдельный поток PXF. Здесь работают Accessor (чтение из источника) и Resolver (перевод в типы GP).
-- **Практика:** фрагментов должно быть заметно больше сегментов и примерно равного размера, иначе перекос или простой сегментов.
-
-# PXF — Fragmentation и Dataflow
-
-- **Когда:** во время `External Scan`, после распределения SQL-плана по сегментам.
-    
-- **Кто:** каждый участвующий GP Primary отправляет `fragmentation call` локальному PXF Server.
-    
-- **Fragmenter:** Java-класс внутри PXF, который формирует общий список логических фрагментов по метаданным источника. Физические данные не разбивает.
-    
-- **Кэш:** локальный для каждой JVM. При совпадении ключа первый поток выполняет Fragmenter, остальные используют результат. TTL по умолчанию — 10 секунд.
-    
-- **Распределение:** каждый GP Segment самостоятельно выбирает свои фрагменты с помощью modulo-based hashing.
-    
-- **Bridge Call:** сегмент запрашивает назначенные фрагменты. Accessor читает записи, Resolver преобразует их для Greenplum.
-    
-- **INSERT:** Greenplum отдельно распределяет полученные строки по ключу `DISTRIBUTED BY`, при необходимости через `Redistribute Motion`.
-    
-- **Mirror:** получает изменения от соответствующего Primary, не читая данные через PXF.
-    
-
-**Пример:** 2 хоста × 2 Primary = 4 fragmentation calls, но 2 выполнения Fragmenter при успешном использовании локальных кэшей.
-
-**Источник:** [PXF: Enabling Parallel Query Processing](https://blogs.vmware.com/tanzu/wp-content/uploads/sites/154/2025/04/pxf-paper.pdf), разделы 4.1 и 5.6.
-
-Разберём на твоём кластере: 4 Primary Segment на двух физических хостах.
-
-Предположим, Fragmenter нашёл 8 фрагментов данных в S3:
-
-`F0, F1, F2, F3, F4, F5, F6, F7`.
-
-Каждый участвующий Primary получает полный список, но самостоятельно выбирает только те фрагменты, которые ему назначены.
-
-## 1. Упрощённый алгоритм
-
-Формула:
-
-\[ \text{segment\_id} = I \bmod N \]
-
-Где:
-
-- \(I\) — индекс фрагмента, начиная с нуля.
-    
-- \(N\) — число участвующих сегментов, в нашем случае 4.
-    
-- `mod` — остаток от деления.
-    
-
-Например:
-
-|Фрагмент|Расчёт|Назначенный сегмент|
-|---|---|---|
-|F0|0 % 4 = 0|Segment 0|
-|F1|1 % 4 = 1|Segment 1|
-|F2|2 % 4 = 2|Segment 2|
-|F3|3 % 4 = 3|Segment 3|
-|F4|4 % 4 = 0|Segment 0|
-|F5|5 % 4 = 1|Segment 1|
-|F6|6 % 4 = 2|Segment 2|
-|F7|7 % 4 = 3|Segment 3|
-
-Fragmenter → F0, F1, F2, F3, F4, F5, F6, F7
-
-Одинаковый упорядоченный список на каждом сегменте
-
-Host 1
-
-Primary 0
-
-F0
-
-F4
-
-Primary 1
-
-F1
-
-F5
-
-Host 2
-
-Primary 2
-
-F2
-
-F6
-
-Primary 3
-
-F3
-
-F7
-
-Результат: каждый Primary читает по два фрагмента. Никакого центрального диспетчера, который вручную назначает фрагменты сегментам, не требуется.
-
-## 2. Реальная формула в исходном коде Greenplum
-
-В опубликованной реализации `pxf_fragment.c` используется дополнительное смещение:
-
-\[ S=(I+(session\_id\bmod N)+command\_count)\bmod N \]
-
-Где:
-
-- `session_id` — идентификатор сессии Greenplum.
-    
-- `command_count` — счётчик команд.
-    
-- `S` — сегмент, которому назначается фрагмент.
-    
-
-Например, при `session_id = 13`, `command_count = 2` и четырёх сегментах:
-
-\[ S=(I+3)\bmod4 \]
-
-Тогда распределение изменится:
-
-|Segment|Фрагменты|
-|---|---|
-|0|F1, F5|
-|1|F2, F6|
-|2|F3, F7|
-|3|F0, F4|
-
-Зачем добавляется смещение? Чтобы при повторных запросах небольшие наборы фрагментов не назначались постоянно одним и тем же сегментам.
-
-Это не случайное назначение: все сегменты одного запроса используют одинаковые исходные значения и получают согласованный результат.
-
-Формула подтверждается исходным кодом функции `FilterFragmentsForSegment()` в `pxf_fragment.c`.
-
-![](https://www.google.com/s2/favicons?domain=https://www.seaxiang.com&sz=32)
-
-seaxiang.com
-
-## 3. Что происходит после назначения
-
-Например, `Primary 0` получил `F1` и `F5`.
-
-1. `Primary 0` оставляет в своём списке только F1 и F5.
-    
-2. Отправляет PXF Server `bridge call` для F1.
-    
-3. PXF через Accessor считывает F1 и возвращает записи сегменту.
-    
-4. Сегмент выполняет `bridge call` для F5.
-    
-5. После чтения строки могут быть перераспределены через `Redistribute Motion` перед вставкой в целевую таблицу.
-    
-
-Важно: формула использует индекс фрагмента, а не значение `customer_id`, содержимое файла или ключ `DISTRIBUTED BY`.
-
-В современных версиях PXF JDBC существуют дополнительные политики распределения фрагментов: `ROUND-ROBIN`, `ACTIVE-SEGMENT`, `IMPROVED-ROUND-ROBIN` и `RANDOM`. Поэтому точное правило для установленной версии и профиля следует проверять отдельно.
-
-![](https://www.google.com/s2/favicons?domain=https://greengagedb.org&sz=32)
-
-Greengage DB Docs
-
-Главный вывод: каждый GP Segment получает список фрагментов, применяет одинаковую детерминированную формулу и оставляет свои элементы. После этого он самостоятельно инициирует чтение назначенных фрагментов через PXF.
 ## Архитектура
 
-- **Greenplum**: Coordinator планирует запрос; **Primary-сегменты** исполняют план и хранят данные; **Mirror** поддерживает резервную копию своего Primary.
-- **PXF Extension**: нативный обработчик протокола `pxf://` в Greenplum.
-- **PXF Server**: отдельный **Java/JVM-сервис**, типично один на *физическом сегментном хосте*, даже если на нём несколько сегментов. При иной топологии размещение сервиса настраивается.
-- **`PROFILE`** выбирает классы обработки; **`SERVER`** выбирает именованную конфигурацию доступа к источнику (это **не** отдельный Java-процесс).
+- **Coordinator** принимает SQL, строит план и распределяет его между сегментами.
+- **Primary Segment** выполняет `External Scan`, запрашивает фрагменты, получает строки и участвует в `INSERT`.
+- **PXF Extension** — нативная часть Greenplum для обмена с PXF по HTTP/REST.
+- **PXF Server** — отдельный **Java/JVM-сервис**, в типовой схеме по одному на сегментный хост. Один сервис обслуживает несколько Primary; это не отдельный JVM-процесс на каждый сегмент или запрос.
+- **Mirror Segment** не читает источник через PXF: он получает изменения от соответствующего Primary посредством репликации Greenplum.
 
-| Компонент | Функция |
+| Компонент PXF | Функция |
 |---|---|
-| **Fragmenter** | Определяет независимые части исходного набора (файлы, splits, диапазоны JDBC). |
-| **Accessor** | Читает/записывает данные конкретной части через API источника. |
-| **Resolver** | Преобразует внешние записи в поля Greenplum и обратно. |
-| **Profile** | Связывает реализации компонентов для формата/источника. |
+| **Profile** | Выбирает сочетание реализаций Fragmenter, Accessor и Resolver под источник/формат (`s3:csv`, `hdfs:parquet`, `jdbc`). |
+| **Fragmenter** | По метаданным источника формирует *логический список фрагментов*: файлы/диапазоны, HDFS splits, JDBC-партиции. Не скачивает строки. |
+| **Accessor** | Читает записи назначенного фрагмента через API источника. |
+| **Resolver** | Преобразует внешние записи в поля для Greenplum (и в обратную сторону при записи). |
 
-## Dataflow: загрузка в обычную таблицу GP
+`PROFILE=...` — **как** работать с данными; `SERVER=...` — **какую именованную конфигурацию подключения** использовать, а не имя отдельного Java-процесса.
+
+## Dataflow: источник → обычная таблица Greenplum
+
+1. Клиент запускает `INSERT INTO target SELECT ... FROM ext_source`. **Coordinator** строит и распределяет план.
+2. Во время `External Scan` **каждый участвующий Primary** отправляет **fragmentation call** своему PXF Server.
+3. PXF проверяет **локальный кэш фрагментов**. При отсутствии записи первый поток вызывает **Fragmenter**, который собирает метаданные из источника. Остальные потоки с тем же ключом используют готовый список.
+4. Каждый Primary получает список фрагментов и **самостоятельно выбирает свои** с помощью детерминированного **modulo-based hashing**.
+5. Для каждого назначенного фрагмента Primary делает **bridge call**. **Accessor** читает данные, **Resolver** преобразует записи; PXF передаёт строки обратно в Greenplum.
+6. Данные обрабатываются **потоково**, а не загружаются целиком в RAM. Greenplum при необходимости выполняет **Redistribute Motion** по `DISTRIBUTED BY` целевой таблицы.
+7. **Целевой Primary** выполняет `INSERT`; изменения реплицируются на его **Mirror**. PXF напрямую на Mirror ничего не вставляет.
 
 ```mermaid
 flowchart TD
-  A[Источник: S3 / HDFS / JDBC] --> B[PXF: Fragmenter определяет фрагменты]
-  B --> C[Участвующие Primary: назначение фрагментов]
-  C --> D[Локальный PXF: Accessor + Resolver]
-  A --> D
-  D --> E[External Scan: строки на читающих Primary]
-  E --> F{Совпадает распределение с целью?}
-  F -->|нет| G[Redistribute Motion по ключу цели]
-  F -->|да| H[INSERT на целевых Primary]
-  G --> H
-  H --> I[Репликация Primary → Mirror]
+    A[Клиент: INSERT INTO target SELECT FROM ext_source] --> B[Coordinator: SQL-план]
+    B --> C[Primary: External Scan]
+    C --> D[Локальный PXF: fragmentation call]
+    D --> E{Фрагменты в кэше?}
+    E -->|нет| F[Fragmenter: метаданные источника]
+    E -->|да| G[Список фрагментов]
+    F --> G
+    G --> H[Primary: выбор своих фрагментов по modulo]
+    H --> I[Bridge calls: Accessor + Resolver]
+    I --> J[Поток строк в Primary]
+    J --> K{Требуется Motion?}
+    K -->|да| L[Redistribute Motion по ключу цели]
+    K -->|нет| M[INSERT в целевой Primary]
+    L --> M
+    M --> N[Репликация Primary → Mirror]
 ```
 
-1. Клиент выполняет `INSERT INTO target SELECT ... FROM ext_source` через **Coordinator**.
-2. **Fragmenter** формирует описания частей **независимо от ключа распределения целевой таблицы**.
-3. Участвующие Primary вызывают PXF; **Accessor** получает данные; **Resolver** представляет их в формате полей Greenplum.
-4. Строки поступают в `External Scan` сегментов **потоково**; весь источник не накапливается в RAM.
-5. **Greenplum**, а не PXF, определяет целевой Primary по `DISTRIBUTED BY`; если нужно, выполняет **Redistribute Motion** (проверяется через `EXPLAIN`).
-6. Primary физически вставляет строки, Mirror получает изменения посредством репликации Greenplum; **PXF не пишет напрямую в Mirror**.
-
 > [!important] Два независимых распределения
-> **Фрагмент PXF → кто читает данные.** `DISTRIBUTED BY` → **где строка будет храниться**. Это разные решения; `Redistribute Motion` не требует предварительно выгружать весь источник в память.
+> **PXF определяет, кто читает фрагмент.** `DISTRIBUTED BY` определяет, **где должна храниться строка**. Фрагментация не учитывает ключ целевой таблицы. `Redistribute Motion` возникает **по плану выполнения**, а не обязательно для любого `INSERT`.
 
-## Пример SQL: S3 → Greenplum
+## Кто реально запускает Fragmenter и когда
+
+- Fragmentation происходит **при исполнении `External Scan`**, до чтения соответствующих фрагментов, а не при `CREATE EXTERNAL TABLE`.
+- Кэш фрагментов **не общий для кластера**, он находится внутри **каждой PXF JVM**. Первый запрос с подходящим ключом вызывает Fragmenter, остальные используют кэш.
+- Ключ кэша в описанной авторами PXF реализации включает конфигурационный сервер, ID транзакции GP, путь к ресурсу и предикаты запроса.
+- TTL по умолчанию — **`10s`** (`pxf.fragmenter-cache.expiration`), значение настраивается. После истечения TTL фрагментация может повториться.
+
+**Пример кластера:** 1 Coordinator + 2 физических сегментных хоста; на каждом по 2 Primary и 2 Mirror, зеркала размещены перекрёстно.
+
+- **4 Primary** → 4 fragmentation calls при одном сканировании всеми четырьмя Primary.
+- **2 PXF JVM** → **2 фактических запуска Fragmenter** при успешном использовании кэша (по одному на JVM). Без попадания в кэш запусков может быть больше.
+- Mirror в чтении не участвуют.
+
+## Как Primary выбирает фрагменты
+
+**Подтверждённая формула одной опубликованной реализации** `FilterFragmentsForSegment()` в `pxf_fragment.c`:
+
+$$
+S = (I + (gp\_session\_id \bmod N) + gp\_command\_count) \bmod N
+$$
+
+- `I` — **позиция** фрагмента в полученном списке (с нуля), **не ключ распределения таблицы**.
+- `N` — число участвующих GP-сегментов в рассматриваемом сканировании.
+- `S` — GP Segment, которому достаётся фрагмент.
+- Смещение по сессии и команде меняет назначение между запросами и улучшает балансировку небольших списков.
+
+**Пример:** `N=4`, `gp_session_id=13`, `gp_command_count=2`. Смещение: `13 % 4 + 2 = 3`.
+
+| Primary | Его фрагменты из `F0 … F7` |
+|---|---|
+| 0 | F1, F5 |
+| 1 | F2, F6 |
+| 2 | F3, F7 |
+| 3 | F0, F4 |
+
+Каждый Primary получает **одинаковый упорядоченный список** и оставляет элементы, удовлетворяющие правилу для его ID. Для корректного согласованного назначения списки должны совпадать. Фактическая политика распределения зависит от версии PXF и коннектора (в частности, у JDBC есть дополнительные настройки).
+
+## Пример SQL: S3 CSV → таблица Greenplum
 
 ```sql
--- На выбранной БД, после установки PXF администраторами:
+-- После установки PXF и настройки доступа к S3:
 CREATE EXTENSION IF NOT EXISTS pxf;
 
 CREATE EXTERNAL TABLE ext_orders (
@@ -224,7 +104,9 @@ CREATE EXTERNAL TABLE ext_orders (
     customer_id BIGINT,
     amount NUMERIC(12,2)
 )
-LOCATION ('pxf://bucket/orders/?PROFILE=s3:csv&SERVER=s3_prod&SKIP_HEADER_COUNT=1')
+LOCATION (
+    'pxf://bucket/orders/?PROFILE=s3:csv&SERVER=s3_prod&SKIP_HEADER_COUNT=1'
+)
 FORMAT 'CSV';
 
 CREATE TABLE orders (
@@ -233,36 +115,52 @@ CREATE TABLE orders (
     amount NUMERIC(12,2)
 ) DISTRIBUTED BY (customer_id);
 
-EXPLAIN INSERT INTO orders SELECT * FROM ext_orders;
+EXPLAIN (COSTS OFF)
+INSERT INTO orders SELECT * FROM ext_orders;
+
 INSERT INTO orders SELECT * FROM ext_orders;
 ANALYZE orders;
+
+SELECT gp_segment_id, COUNT(*)
+FROM orders
+GROUP BY gp_segment_id
+ORDER BY gp_segment_id;
 ```
 
-`SERVER=s3_prod` требует предварительно настроенного каталога `$PXF_BASE/servers/s3_prod/`. Параметры URI и формат зависят от PXF-профиля.
+`SERVER=s3_prod` требует предварительной конфигурации в `$PXF_BASE/servers/s3_prod/`. Параметры зависят от профиля и версии PXF. `DROP EXTERNAL TABLE ext_orders` удаляет **только определение**, но не файлы в S3.
 
-## Минимальный CLI / диагностика
+## Минимальный CLI и диагностика
 
 ```bash
-pxf version               # установленная версия
-pxf status                # состояние сервиса на текущем хосте
-pxf cluster status        # состояние сервисов в кластере
-pxf cluster sync          # распространить конфигурацию с Coordinator
-pxf cluster restart       # перезапустить после изменений конфигурации
-# pxf cluster start / stop — управление сервисами кластера
+pxf version               # Версия PXF
+pxf status                # Статус локального PXF Server
+pxf cluster status        # Статусы по кластеру
+pxf cluster sync          # Синхронизация конфигураций
+pxf cluster restart       # Перезапуск после изменений
+# pxf cluster start / stop — запуск / остановка
 ```
 
 ```sql
-SELECT extname, extversion FROM pg_extension WHERE extname = 'pxf';
-EXPLAIN (COSTS OFF) INSERT INTO orders SELECT * FROM ext_orders;
-SELECT gp_segment_id, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1;
+SELECT extname, extversion
+FROM pg_extension
+WHERE extname = 'pxf';
+
+EXPLAIN (COSTS OFF)
+INSERT INTO orders SELECT * FROM ext_orders;
 ```
 
-- **Конфигурация**: `$PXF_BASE/conf/`, `$PXF_BASE/servers/<name>/`; журналы — в каталоге логов PXF.
-- **Ограничители**: сеть до источника, CPU/RAM JVM, число и размер фрагментов, мощность внешней БД, операции Motion.
-- **`DROP EXTERNAL TABLE`** удаляет метаданные внешней таблицы, но **не файлы S3/HDFS**.
-- **Версионность**: приведён современный CLI для PXF 6.x; у старых поставок другие переменные окружения (`PXF_CONF`) и команды первичной инициализации. Проверять `pxf help` и версию сервиса.
+- **Настройки:** `$PXF_BASE/conf/pxf-application.properties`, `$PXF_BASE/conf/pxf-env.sh`; подключения — `$PXF_BASE/servers/<name>/`.
+- **Ресурсы:** PXF расходует CPU, RAM и сеть сегментных хостов. `pxf.max.threads` — лимит рабочих потоков Tomcat (**200** по умолчанию в рассматриваемой документации), а **не** формула «по одному потоку на сегмент».
+- **Производительность:** достаточное число фрагментов сопоставимого размера, пропускная способность источника, сеть, Memory/CPU PXF и стоимость Motion. Единого гарантированного оптимального числа фрагментов нет.
 
-## Источники
-- [EDB: PXF CLI](https://www.enterprisedb.com/docs/pxf/latest/reference/commands/)
-- [Документация PXF: профили и архитектура](https://www.enterprisedb.com/docs/pxf/latest/)
-- Связанное: [[gpfdist_Greenplum|gpfdist — параллельный файловый сервер]]
+## Источники и применимость
+
+- [PXF: Enabling Parallel Query Processing](https://blogs.vmware.com/tanzu/wp-content/uploads/sites/154/2025/04/pxf-paper.pdf) — разделы **4.1, 4.2–4.4, 5.6** (fragmentation calls, компоненты, локальный кэш).
+- [Опубликованный `pxf_fragment.c`](https://www.seaxiang.com/blog/d9b34a68d02b4b74bdd33a81efa6e496) — функция `FilterFragmentsForSegment()` и формула со смещением.
+- [Greengage: конфигурация PXF](https://greengagedb.org/en/docs-pxf/current/pxf_configuration_files.html) — TTL `10s`, `pxf.max.threads`, конфигурационные файлы.
+- [Greengage: пример S3 CSV](https://greengagedb.org/ru/docs-gg/current/example_s3_text.html) — `PROFILE=s3:csv`, `SKIP_HEADER_COUNT`.
+
+> [!note] Версионность
+> Статья и исходный код описывают конкретные реализации PXF/Greenplum. **Точную формулу назначения фрагментов и доступные настройки необходимо сверять с исходным кодом установленной версии.**
+
+Связано: [[gpfdist_Greenplum|gpfdist — параллельный файловый сервер]].
