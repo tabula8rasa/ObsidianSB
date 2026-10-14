@@ -267,4 +267,4 @@ SELECT gp_segment_id, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1;
 ## Источники
 - [EDB: PXF CLI](https://www.enterprisedb.com/docs/pxf/latest/reference/commands/)
 - [Документация PXF: профили и архитектура](https://www.enterprisedb.com/docs/pxf/latest/)
-- Связанное: [[gpfdist_Greenplum_Obsidian|gpfdist — параллельный файловый сервер]]
+- Связанное: [[gpfdist_Greenplum|gpfdist — параллельный файловый сервер]]

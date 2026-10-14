@@ -142,4 +142,4 @@ kill <PID>                 # корректно остановить свой п
 - [Greenplum 6: gpfdist](https://docs-cn.greenplum.org/v6/utility_guide/admin_utilities/gpfdist.html)
 - [Greenplum 6: CREATE EXTERNAL TABLE](https://docs-cn.greenplum.org/v6/ref_guide/sql_commands/CREATE_EXTERNAL_TABLE.html)
 - [Greengage: Use gpfdist](https://greengagedb.org/en/docs-gg/6.30.1/use_gpfdist.html)
-- Связанное: [[PXF_Greenplum_Obsidian|PXF — параллельный доступ к внешним данным]]
+- Связанное: [[PXF_Greenplum|PXF — параллельный доступ к внешним данным]]
