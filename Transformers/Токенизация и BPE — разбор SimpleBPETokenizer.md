@@ -350,8 +350,6 @@ cat</w>
 
 ## 8. Исходный код
 
-Ниже код приведён полностью и без изменений.
-
 ```python
 from collections import Counter, defaultdict
 
