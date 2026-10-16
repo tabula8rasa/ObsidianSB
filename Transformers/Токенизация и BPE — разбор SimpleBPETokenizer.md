@@ -360,6 +360,8 @@ class SimpleBPETokenizer:
     def __init__(self, num_merges=10):
         self.num_merges = num_merges
         self.merges = []  # Запоминает порядок слияния пар токенов
+        self.token2id = {}   # NEW: токен -> id
+        self.id2token = {}   # NEW: id -> токен
 
     def _get_stats(self, words):
         """Считает частоту соседних пар токенов."""
@@ -383,9 +385,7 @@ class SimpleBPETokenizer:
         return tuple(new_word)
 
     def train(self, text):
-        """Обучение: находит самые частые пары и формирует правила слияния."""
         raw_words = text.lower().split()
-        # Разбиваем каждое слово на буквы и добавляем конец слова '</w>'
         words = Counter(tuple(list(w) + ['</w>']) for w in raw_words)
 
         for _ in range(self.num_merges):
@@ -394,11 +394,18 @@ class SimpleBPETokenizer:
                 break
 
             best_pair = max(pairs, key=pairs.get)
-            if pairs[best_pair] < 2:  # Останавливаемся, если пары слишком редкие
+            if pairs[best_pair] < 2:
                 break
 
             self.merges.append(best_pair)
             words = {self._merge_word(word, best_pair): freq for word, freq in words.items()}
+
+        # NEW: строим словарь из всех токенов, оставшихся после слияний
+        vocab = {'<unk>'}  # спецтокен для неизвестных символов
+        for word in words:
+            vocab.update(word)
+        self.token2id = {tok: i for i, tok in enumerate(sorted(vocab))}
+        self.id2token = {i: tok for tok, i in self.token2id.items()}
 
     def tokenize(self, text):
         """Инференс: применяет выученные правила к новому тексту."""
@@ -412,6 +419,15 @@ class SimpleBPETokenizer:
             tokens.extend(word)
 
         return tokens
+        
+    # NEW: токены -> id
+    def encode(self, text):
+        unk = self.token2id['<unk>']
+        return [self.token2id.get(tok, unk) for tok in self.tokenize(text)]
+
+    # NEW: id -> токены
+    def decode(self, ids):
+        return [self.id2token[i] for i in ids]
 
 
 # ==========================================
@@ -436,9 +452,14 @@ for i, merge in enumerate(tokenizer.merges, 1):
 print("\n" + "=" * 40 + "\n")
 
 # 3. Токенизация нового текста
-input_text = "The fast cat sat near the fat rat wow."
+input_text = "The fast cat sat near the fat rat wow z."
 tokens = tokenizer.tokenize(input_text)
 
 print(f"Исходная строка: '{input_text}'")
 print(f"Результат токенизации:\n{tokens}")
+
+
+ids = tokenizer.encode(input_text)
+print("ID:", ids)
+print("Обратно:", tokenizer.decode(ids))
 ```
