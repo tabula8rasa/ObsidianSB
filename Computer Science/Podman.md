@@ -129,14 +129,3 @@ podman CLI ──fork/exec──► conmon ──► OCI runtime (runc | crun) �
 |Сеть|`docker0` bridge, `libnetwork`|`netavark`, в rootless — `pasta`|
 |Kubernetes|—|`kube play` / `generate kube`|
 |Единая точка отказа|`dockerd`|нет|
-
-## 10. Мысленная модель
-
-Docker = **«платформа-сервис»**: один привилегированный демон знает всё и выполняет команды клиентов. Podman = **«набор библиотек + CLI»**: каждая команда сама выполняет работу под вашим UID, а долгоживущие функции (мониторинг, автозапуск) отдаются `conmon` и `systemd`.
-
-## Связанное
-
-- [[Linux namespaces]]
-- [[cgroups v2]]
-- [[OCI runtime-spec]]
-- [[Buildah]], [[Skopeo]], [[CRI-O]]
