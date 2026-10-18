@@ -1,4 +1,4 @@
-# Раздел №1. Синтаксис SQL: соответствия PostgreSQL / Greenplum → Oracle
+# Раздел №1. Синтаксис SQL: соответствия PostgreSQL → Oracle
 
 ## Вопрос №1. SELECT без FROM и таблица DUAL
 Какой запрос вернёт число 1 в Oracle 19c?
@@ -1457,83 +1457,6 @@
 <summary>Ответ</summary>
 
 **C.** Важно понимать объём данных, передаваемых по сети.
-
-</details>
-
-# Раздел №12. Подготовка к собеседованию
-
-## Вопрос №97. Совет: как честно подать свой опыт
-Как стоит описывать опыт работы с Oracle, если основной опыт в PostgreSQL и Greenplum?
-
-- A. Честно: знание на уровне маппинга («в PG так, в Oracle `MERGE`, `APPEND`, `EXCHANGE PARTITION`, `DBMS_STATS`») плюс осознанное понимание отличий
-- B. Заявить промышленный опыт в Oracle
-- C. Не упоминать PostgreSQL и Greenplum
-- D. Говорить только про PL/SQL
-
-<details>
-<summary>Ответ</summary>
-
-**A.** Два-три уточняющих вопроса про планы, хинты или PL/SQL быстро вскрывают завышенный опыт.
-
-</details>
-
-## Вопрос №98. Что учить в первую очередь
-Какая тема стоит первой в списке приоритетов подготовки для DE?
-
-- A. NLS, типы, constraints
-- B. CDB/PDB и RAC
-- C. `JSON_TABLE` и `MATCH_RECOGNIZE`
-- D. PX, data redistribution, data skew
-
-<details>
-<summary>Ответ</summary>
-
-**D.** Дальше идут: partition pruning и partition-wise join, PGA/TEMP, DML Error Logging, Adaptive Cursor Sharing, SCN/REDO, CDB/PDB и RAC, JSON_TABLE и MATCH_RECOGNIZE, изоляция и блокировки, NLS/типы/constraints.
-
-</details>
-
-## Вопрос №99. Практический кейс для подготовки
-Какой сценарий рекомендован для комплексной практики?
-
-- A. Установка RAC-кластера
-- B. Загрузка 100 млн строк из staging, проверка качества, преобразования, партиционирование, параллельное выполнение и диагностика деградации SQL
-- C. Миграция PDB между контейнерами
-- D. Настройка Data Guard
-
-<details>
-<summary>Ответ</summary>
-
-**B.** Такой кейс проверяет большую часть перечисленных особенностей одновременно.
-
-</details>
-
-## Вопрос №100. Итог: сильные стороны опыта Greenplum
-Что составляет главное преимущество опыта Greenplum при переходе в Oracle?
-
-- A. Знание PL/SQL
-- B. Знание RMAN
-- C. Понимание MPP-запросов, распределения данных, hash joins и статистики
-- D. Знание RAC
-
-<details>
-<summary>Ответ</summary>
-
-**C.** Новые навыки для собеседования: читать PX-план, диагностировать TEMP spills, понимать SCN/redo и конкурентное выполнение ETL.
-
-</details>
-
-## Вопрос №101. Ориентир по версиям Oracle
-Что из перечисленного доступно только начиная с Oracle 23ai?
-
-- A. `SELECT` без `FROM DUAL` и тип `BOOLEAN` в SQL
-- B. `FETCH FIRST ... ROWS ONLY`
-- C. `GENERATED AS IDENTITY`
-- D. Private Temporary Tables
-
-<details>
-<summary>Ответ</summary>
-
-**A.** `FETCH FIRST`, `IDENTITY` и `MATCH_RECOGNIZE` появились в 12c, Private Temporary Tables в 18c. Материал ориентирован на Oracle 19c.
 
 </details>
 
