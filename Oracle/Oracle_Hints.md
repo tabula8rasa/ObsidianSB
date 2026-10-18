@@ -1,4 +1,4 @@
-# Раздел №1. Синтаксис SQL: соответствия PostgreSQL / Greenplum → Oracle
+# Раздел №1. Синтаксис SQL: соответствия PostgreSQL → Oracle
 
 ## Особенность №1. SELECT без FROM и таблица DUAL
 В PostgreSQL можно написать `SELECT 1`. В Oracle нужно `SELECT 1 FROM DUAL`. В Oracle 23ai DUAL для этого уже не обязателен.
