@@ -1,2 +1,9 @@
 .obsidian/
 .trash/
+
+.venv/
+venv/
+ENV/
+
+.env
+.env.*
