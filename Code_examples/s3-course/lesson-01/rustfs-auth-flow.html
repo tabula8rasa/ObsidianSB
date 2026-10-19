@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RustFS — аутентификация и авторизация: интерактивный разбор</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b1120; --panel:#111c2e; --panel2:#18263a; --stroke:#2c3d56; --muted:#9eafc4; --text:#e9f1fc; --a:#6fd6c0; --b:#92b5ff; --c:#f5b96b; --red:#ff9c98; --font:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; --mono:ui-monospace,SFMono-Regular,Consolas,Monaco,monospace; }
+  * {box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse 60% 35% at 51% -8%,#203653 0%,transparent 100%),var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+  button {font:inherit;cursor:pointer} button:focus-visible,a:focus-visible{outline:2px solid var(--a);outline-offset:4px}
+  .app{max-width:1510px;margin:0 auto;padding:28px 30px 40px}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;padding-bottom:21px}
+  .eyebrow{font-family:var(--mono);font-weight:650;font-size:11px;letter-spacing:1.7px;color:var(--a);text-transform:uppercase}
+  h1{font-size:clamp(23px,2.2vw,34px);line-height:1.18;letter-spacing:-.9px;margin:9px 0 10px;font-weight:750}
+  .sub{color:var(--muted);font-size:13px;max-width:720px;margin:0}
+  .pill{border:1px solid #38516a;border-radius:99px;padding:9px 13px;font:12px var(--mono);color:#bccee0;white-space:nowrap;background:#152237}
+  .pill strong{color:var(--a)}
+  .intro{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid var(--stroke);background:linear-gradient(90deg,#132437,#101b2c);border-radius:12px;padding:13px 17px;margin-bottom:16px}
+  .intro span{color:#bdd1e6;font-size:12px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font:11px var(--mono)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--a)}
+  .dot.network{background:var(--c)}.dot.server{background:var(--b)}
+  .grid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(420px,1.52fr) minmax(260px,1fr);gap:13px;align-items:stretch}
+  .panel{border:1px solid var(--stroke);border-radius:15px;background:linear-gradient(180deg,#142238 0%,#0f192b 100%);min-width:0;overflow:hidden;box-shadow:0 12px 35px #050c1840;display:flex;flex-direction:column}
+  .panel .ph{padding:16px 18px 13px;border-bottom:1px solid #2a3a53;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .panel .ph h2{font-size:14px;margin:0;font-weight:750;letter-spacing:.1px}
+  .cap{font:10px var(--mono);color:#89a0b9;text-transform:uppercase;letter-spacing:1px}
+  .node-tag{font:10px var(--mono);padding:4px 7px;border-radius:5px;border:1px solid #3c5169;color:#b7cee5}
+  .pbody{padding:15px;flex:1}
+  .scope{border:1px solid #304158;border-radius:10px;padding:11px 12px;margin-bottom:11px;background:#101e31;transition:.2s border-color,.2s box-shadow}
+  .scope:last-child{margin-bottom:0}
+  .scope.hot{border-color:var(--a);box-shadow:0 0 0 1px #6fd6c030;background:#13302f}
+  .scope.hot-s{border-color:var(--b);box-shadow:0 0 0 1px #92b5ff30;background:#1a2842}
+  .klabel{font:600 10px var(--mono);letter-spacing:1px;color:#93aac3;text-transform:uppercase;margin-bottom:8px}
+  .lines{display:grid;gap:6px}
+  .pair{display:grid;grid-template-columns:90px minmax(0,1fr);gap:7px;align-items:start;font-family:var(--mono);font-size:10.6px}
+  .pair .key{color:#9cacc2}.pair .val{color:#e1effe;min-width:0;overflow-wrap:anywhere}
+  .pair .val.dim{color:#6f849a}
+  .pair .val.good{color:#78dbc4}.pair .val.warn{color:#f5b96b}.pair .val.bad{color:#ffa7a2}
+  .wire{position:relative;background:linear-gradient(180deg,#121d30,#0d1728)}
+  .wire .ph{border-bottom:1px solid #33445a}
+  .wire .ph .cap{color:#e0b575}
+  .transport{display:flex;flex-direction:column;gap:11px;padding:20px 19px 13px;flex:1;min-height:485px}
+  .step-category{font:700 11px var(--mono);text-transform:uppercase;letter-spacing:1.4px;color:var(--c)}
+  .step-category.local{color:var(--a)}.step-category.check{color:var(--b)}
+  .wire-title{font-size:21px;line-height:1.22;letter-spacing:-.3px;font-weight:730;margin:0}
+  .wire-sub{font-size:12px;color:#aabed2;margin:0}
+  .direction{display:flex;align-items:center;gap:11px;color:#c7d6e6;font:11px var(--mono);margin-top:2px}
+  .direction .rail{height:1px;flex:1;position:relative;background:linear-gradient(90deg,#719ac8,#e4b77d)}
+  .direction.right .rail:after{content:"";width:7px;height:7px;border-top:2px solid var(--c);border-right:2px solid var(--c);transform:translateY(-4px) rotate(45deg);position:absolute;right:1px;top:0}
+  .direction.left .rail:before{content:"";width:7px;height:7px;border-bottom:2px solid var(--b);border-left:2px solid var(--b);transform:translateY(-4px) rotate(45deg);position:absolute;left:1px;top:0}
+  .packet{border:1px solid #445771;border-radius:11px;background:#070f1d;min-height:155px;overflow:hidden;flex:1;display:flex;flex-direction:column}
+  .packet-head{background:#17263c;border-bottom:1px solid #2e4360;padding:9px 12px;color:#f0c48a;font:11px var(--mono);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  pre{margin:0;padding:15px;font:11.2px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;flex:1;color:#daecfb;tab-size:2;}
+  .packet.local-box{background:repeating-linear-gradient(135deg,#0e2032,#0e2032 12px,#112336 12px,#112336 24px);border-style:dashed}
+  .packet.local-box pre{color:#c2d8e9}
+  .wire-note{border-radius:8px;background:#223247;border:1px solid #31465b;padding:10px 12px;color:#c5d7e8;font-size:12px}
+  .wire-note b{color:#fbcd89}
+  .bottom{margin-top:14px;display:grid;grid-template-columns:1.4fr 1fr;gap:13px}
+  .explain{background:#121f32;border:1px solid var(--stroke);border-radius:12px;padding:17px 20px;min-height:126px}
+  .explain h3{font-size:12px;text-transform:uppercase;letter-spacing:1.3px;color:var(--a);margin:0 0 8px}
+  .explain p{font-size:13px;margin:0;color:#c6d7e9;line-height:1.6}
+  .explain code{font-family:var(--mono);color:#f1c99a}
+  .controller{background:#121f32;border:1px solid var(--stroke);border-radius:12px;padding:17px 18px;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+  .progressrow{display:flex;justify-content:space-between;gap:12px;align-items:center;font:12px var(--mono);color:#afc3d7}
+  .progressrow strong{color:#eaf3ff;font-weight:700}
+  .progress{height:6px;border-radius:50px;background:#2c4058;overflow:hidden}
+  #progress-fill{height:100%;width:0;background:linear-gradient(90deg,#52bba4,#9cbbff);border-radius:50px;transition:width .25s ease}
+  .ctrls{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{padding:10px 14px;border:1px solid #40546f;border-radius:8px;color:#d7e5f7;background:#1e3048;font-size:12px;font-weight:700}
+  .btn:hover:not(:disabled){background:#2a405d}.btn:disabled{opacity:.35;cursor:default}
+  .btn.primary{background:#b9e8da;color:#102b2d;border-color:#b9e8da;flex:1}.btn.primary:hover:not(:disabled){background:#ddfff3}
+  .mini{font:10px var(--mono);color:#7f9ab2}
+  .timeline{margin-top:17px;background:#111c2e;border:1px solid var(--stroke);border-radius:12px;padding:14px 16px}
+  .timelinehead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.timeline h3{font-size:11px;color:#c0d4e8;letter-spacing:1.2px;text-transform:uppercase;margin:0}
+  .steps{display:flex;gap:7px;overflow-x:auto;padding-bottom:7px;scrollbar-width:thin}
+  .step-btn{border:1px solid #344962;min-width:38px;border-radius:7px;background:#1b2b42;color:#9cb2c9;padding:8px 9px;font:11px var(--mono);position:relative;white-space:nowrap}
+  .step-btn.active{background:#19423f;color:#c0fff0;border-color:#6fd6c0}.step-btn.done{color:#d3e7fa;border-color:#4b6579}.step-btn:hover{border-color:#92b5ff}
+  .foot{color:#8298ad;font-size:11px;line-height:1.7;margin:18px 2px 0}
+  .foot a{color:#97d7cd}.foot strong{color:#b5cfe5}
+  @media(max-width:1150px){.app{padding:23px 17px}.grid{grid-template-columns:minmax(200px,1fr) minmax(340px,1.65fr) minmax(200px,1fr)}.pair{grid-template-columns:1fr;gap:0}}
+  @media(max-width:850px){header{flex-direction:column}.grid{grid-template-columns:1fr}.panel .pbody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.scope{margin:0!important}.transport{min-height:350px}.bottom{grid-template-columns:1fr}.pair{grid-template-columns:88px minmax(0,1fr);gap:7px}}
+  @media(max-width:550px){.app{padding:15px 10px}.panel .pbody{grid-template-columns:1fr}.intro{flex-direction:column;align-items:flex-start}.pair{grid-template-columns:95px 1fr}.transport{padding:14px}.wire-title{font-size:18px}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="eyebrow">Интерактивная лаборатория / S3 / Security</div>
+      <h1>RustFS: от Login до CreateBucket</h1>
+      <p class="sub">Две сущности: <strong>Клиент (браузер)</strong> и <strong>Сервер RustFS</strong>. На каждом шаге показано конкретное действие; каждый сетевой запрос и HTTP-ответ явно появляется посередине.</p>
+    </div>
+    <div class="pill">РЕЖИМ <strong>СИМУЛЯЦИИ</strong> · без реальных запросов</div>
+  </header>
+  <div class="intro">
+    <span><strong>Пример:</strong> Key Login → STS AssumeRole → временные credentials → SigV4 → S3 CreateBucket. Все ключи и подписи вымышлены.</span>
+    <div class="legend"><span><i class="dot"></i>локальное действие</span><span><i class="dot network"></i>запрос / ответ</span><span><i class="dot server"></i>проверка на сервере</span></div>
+  </div>
+  <main class="grid">
+    <section class="panel" aria-label="Клиент">
+      <div class="ph"><div><div class="cap">Сущность 01</div><h2>Клиент · Browser</h2></div><span class="node-tag">:9001 UI</span></div>
+      <div class="pbody">
+        <div class="scope" id="c-ui"><div class="klabel">Интерфейс / JS</div><div class="lines" id="client-ui"></div></div>
+        <div class="scope" id="c-cookie"><div class="klabel">Cookies · 127.0.0.1</div><div class="lines" id="client-cookie"></div></div>
+        <div class="scope" id="c-local"><div class="klabel">localStorage · 127.0.0.1:9001</div><div class="lines" id="client-local"></div></div>
+        <div class="scope" id="c-ram"><div class="klabel">Оперативная память JavaScript</div><div class="lines" id="client-ram"></div></div>
+      </div>
+    </section>
+    <section class="panel wire" aria-label="Запросы и локальные операции">
+      <div class="ph"><div><div class="cap">Событие шага</div><h2>Запрос / ответ / вычисление</h2></div><span class="node-tag" id="event-type">LOCAL</span></div>
+      <div class="transport">
+        <div class="step-category" id="event-class">Локальное действие</div>
+        <h2 class="wire-title" id="event-title"></h2>
+        <p class="wire-sub" id="event-sub"></p>
+        <div class="direction" id="direction"><span id="from">Клиент</span><span class="rail"></span><span id="to">Сервер</span></div>
+        <div class="packet" id="packet"><div class="packet-head"><span id="packet-method"></span><span id="packet-endpoint"></span></div><pre id="packet-code"></pre></div>
+        <div class="wire-note" id="wire-note"></div>
+      </div>
+    </section>
+    <section class="panel" aria-label="Сервер">
+      <div class="ph"><div><div class="cap">Сущность 02</div><h2>Сервер · RustFS</h2></div><span class="node-tag">:9000 API</span></div>
+      <div class="pbody">
+        <div class="scope" id="s-root"><div class="klabel">Известные постоянные ключи</div><div class="lines" id="server-root"></div></div>
+        <div class="scope" id="s-policy"><div class="klabel">Политики и доступ</div><div class="lines" id="server-policy"></div></div>
+        <div class="scope" id="s-session"><div class="klabel">Временные STS credentials</div><div class="lines" id="server-session"></div></div>
+        <div class="scope" id="s-data"><div class="klabel">Состояние / решение</div><div class="lines" id="server-data"></div></div>
+      </div>
+    </section>
+  </main>
+  <section class="bottom">
+    <div class="explain" aria-live="polite"><h3>Что именно произошло</h3><p id="explanation"></p></div>
+    <div class="controller">
+      <div><div class="progressrow"><span id="counter">Шаг 1</span><strong id="stage-name">Подготовка</strong></div><div class="progress" style="margin-top:12px"><div id="progress-fill"></div></div></div>
+      <div class="ctrls"><button class="btn" id="reset" title="Вернуться к началу">↺ Сначала</button><button class="btn" id="prev">← Назад</button><button class="btn primary" id="next">Далее →</button></div>
+      <div class="mini">Клавиши ← → · можно нажать номер шага ниже</div>
+    </div>
+  </section>
+  <section class="timeline"><div class="timelinehead"><h3>Последовательность</h3><span class="mini">Нажми на любой шаг</span></div><div class="steps" id="steps"></div></section>
+  <p class="foot"><strong>Границы модели:</strong> показан учебный сценарий Key Login с выдачей STS credentials. Точный порт и маршрут запросов Console могут зависеть от версии RustFS, проксирования и конфигурации. Демонстрация не подключается к твоему серверу и не читает реальные cookies или localStorage. Cookie <code>mongo-express</code> приведена как пример сторонней cookie того же хоста: она не аутентифицирует в RustFS. Данный пример отличается от OIDC-входа и не описывает все возможные способы входа. <a href="https://docs.rustfs.com/en/administration/console" target="_blank" rel="noopener">Console</a> · <a href="https://docs.rustfs.com/en/security-compliance/iam/sts" target="_blank" rel="noopener">RustFS STS</a> · <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv.html" target="_blank" rel="noopener">AWS SigV4</a>.</p>
+</div>
+<script>
+'use strict';
+// All values below are educational fixtures; this file does not perform network requests.
+const rootKey='ADMIN123', rootSecret='MySecret456', tempKey='TMP7F83AZ91', tempSecret='TempSecret-9FA7-X', token='eyJhbGciOiJIUzI1NiJ9.demo.signature', expiration='2026-10-19T14:00:00Z';
+const reqSts=`POST / HTTP/1.1\nHost: 127.0.0.1:9001\nContent-Type: application/x-www-form-urlencoded\nX-Amz-Date: 20261019T125000Z\nAuthorization: AWS4-HMAC-SHA256\n Credential=ADMIN123/20261019/us-east-1/s3/aws4_request,\n SignedHeaders=content-type;host;x-amz-date,\n Signature=<вычисленная-подпись>\n\nAction=AssumeRole&Version=2011-06-15`;
+const respSts=`HTTP/1.1 200 OK\nContent-Type: application/xml\n\n<AssumeRoleResponse>\n  <AssumeRoleResult>\n    <Credentials>\n      <AccessKeyId>${tempKey}</AccessKeyId>\n      <SecretAccessKey>${tempSecret}</SecretAccessKey>\n      <SessionToken>${token}</SessionToken>\n      <Expiration>${expiration}</Expiration>\n    </Credentials>\n  </AssumeRoleResult>\n</AssumeRoleResponse>`;
+const reqBucket=`PUT /s3-course-lesson1 HTTP/1.1\nHost: 127.0.0.1:9000\nX-Amz-Date: 20261019T125100Z\nX-Amz-Security-Token: ${token}\nX-Amz-Content-Sha256: <SHA256-payload>\nAuthorization: AWS4-HMAC-SHA256\n Credential=${tempKey}/20261019/us-east-1/s3/aws4_request,\n SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-security-token,\n Signature=<новая-подпись>`;
+const reqList=`GET / HTTP/1.1\nHost: 127.0.0.1:9000\nX-Amz-Date: 20261019T125200Z\nX-Amz-Security-Token: ${token}\nAuthorization: AWS4-HMAC-SHA256\n Credential=${tempKey}/20261019/us-east-1/s3/aws4_request,\n SignedHeaders=host;x-amz-date;x-amz-security-token,\n Signature=<ещё-одна-подпись>`;
+const state0={ui:'Страница ещё не загружена',cookies:'i18n_redirected=en\nmongo-express=s%3A... [чужая]',storage:'auth.credentials: отсутствует\nauth.isAdmin: отсутствует',ram:'Нет credentials',root:'AccessKeyId: ADMIN123\nSecretAccessKey: MySecret456',policy:'root-идентичность: администратор\nРазрешено: STS / CreateBucket / ListBuckets',session:'STS-сессий пока нет',data:'Бакетов нет'};
+function step(title, kind, side, extra={}) {return {title,kind,side,...extra}}
+const steps=[
+  step('Сервер запущен','local','server',{phase:'Подготовка',sub:'RustFS уже знает постоянные credentials администратора',code:'RUSTFS_ACCESS_KEY=ADMIN123\nRUSTFS_SECRET_KEY=MySecret456\n\nЭти значения заданы до входа пользователя.\nЭто не JWT и не cookie.',explanation:'Постоянные credentials задаёт администратор RustFS при настройке. Сервер хранит идентификатор и соответствующий секрет. Никакого запроса от клиента ещё нет.',focus:['s-root','s-policy']}),
+  step('Первый запрос страницы','request','client',{phase:'Загрузка UI',endpoint:'Console :9001',method:'GET /',code:'GET / HTTP/1.1\nHost: 127.0.0.1:9001\nAccept: text/html',explanation:'Браузер запрашивает интерфейс. Этот GET не является операцией CreateBucket и сам по себе не авторизует пользователя.'}),
+  step('Сервер отдаёт HTML','response','server',{phase:'Загрузка UI',endpoint:'Console :9001',method:'200 OK',code:'HTTP/1.1 200 OK\nContent-Type: text/html\n\n<!doctype html>...\n<script src="/assets/app.js"><\/script>\n<link rel="stylesheet" href="/assets/app.css">',patch:{ui:'Получен HTML; JS и CSS ещё не загружены'},explanation:'HTML-ответ сообщает браузеру, где находятся файлы JavaScript и CSS. Для каждого файла браузер отправит отдельный HTTP-запрос.',focus:['c-ui']}),
+  step('Запрос JavaScript','request','client',{phase:'Загрузка UI',endpoint:'Console :9001',method:'GET /assets/app.js',code:'GET /assets/app.js HTTP/1.1\nHost: 127.0.0.1:9001\nAccept: */*',explanation:'Браузер отдельно запрашивает JavaScript-код веб-приложения. Имя файла дано для примера; в реальной сборке используются собственные пути и хешированные имена файлов.'}),
+  step('Ответ с JavaScript','response','server',{phase:'Загрузка UI',endpoint:'Console :9001 → Browser',method:'200 OK',code:'HTTP/1.1 200 OK\nContent-Type: text/javascript\n\n// JavaScript-бандл RustFS Console\n// Получен и затем выполнен браузером',patch:{ui:'HTML + JavaScript загружены'},explanation:'Браузер получил исполняемый JavaScript. Он будет управлять формой входа, состоянием сессии и S3-запросами.',focus:['c-ui']}),
+  step('Запрос CSS','request','client',{phase:'Загрузка UI',endpoint:'Console :9001',method:'GET /assets/app.css',code:'GET /assets/app.css HTTP/1.1\nHost: 127.0.0.1:9001\nAccept: text/css',explanation:'Браузер отдельно запрашивает CSS. В реальности JavaScript и CSS могут загружаться параллельно; для наглядности здесь они показаны последовательно.'}),
+  step('Ответ с CSS','response','server',{phase:'Загрузка UI',endpoint:'Console :9001 → Browser',method:'200 OK',code:'HTTP/1.1 200 OK\nContent-Type: text/css\n\n/* CSS-бандл RustFS Console */\n.login { display: grid; }',patch:{ui:'HTML + JavaScript + CSS загружены'},explanation:'Браузер получает таблицу стилей. Для просмотра формы входа backend-доступ к бакетам ещё не нужен.',focus:['c-ui']}),
+  step('JavaScript читает хранилища','local','client',{phase:'Проверка браузера',code:'document.cookie → i18n_redirected=en\n                   mongo-express=s%3A...\n\nlocalStorage.getItem("auth.credentials") → null\nlocalStorage.getItem("auth.isAdmin") → null',explanation:'Клиент проверяет собственное состояние. Cookie mongo-express относится к другому приложению. Для входа в RustFS Console важны её собственные credentials. Сервер сейчас не получает запроса.',focus:['c-cookie','c-local']}),
+  step('Показана форма Login','local','client',{phase:'Проверка браузера',code:'if (!validStoredCredentials) {\n  renderLoginForm();\n}',patch:{ui:'Форма Key Login показана'},explanation:'Это клиентское решение о том, какую страницу показать. Подмена JavaScript может открыть экран Dashboard, но не даёт прав на действия с бакетами.',focus:['c-ui']}),
+  step('Введены постоянные ключи','local','client',{phase:'Вход',code:'AccessKeyId     = ADMIN123\nSecretAccessKey = MySecret456\n\nПользователь нажал [ Login ].',patch:{ui:'Нажата кнопка Login',ram:'originalAccessKey: ADMIN123\noriginalSecretKey: MySecret456'},explanation:'На этом шаге данные находятся в памяти JavaScript-формы браузера. Сервер ничего не получил. Пример использует вымышленные учётные данные.',focus:['c-ui','c-ram']}),
+  step('Формирование STS-запроса','local','client',{phase:'Вход',code:'method = POST\npath = /\nbody = Action=AssumeRole&Version=2011-06-15\nservice = s3\nregion = us-east-1\n\nПока ещё НЕ отправлено.',patch:{ram:'ADMIN123 / MySecret456\nSTS request: подготовлен'},explanation:'STS — API, который выдаёт временные credentials. Запрос собирается локально, в браузере. На данном этапе сети ещё нет.',focus:['c-ram']}),
+  step('Вычисление SigV4','local','client',{phase:'Вход',code:'canonicalRequest = canonicalize(POST, /, headers, body)\nhash = SHA256(canonicalRequest)\nsignKey = HMAC_chain(MySecret456, date, region, "s3")\nsignature = HMAC_SHA256(signKey, stringToSign)\n\nSecretAccessKey НЕ вставляется в Authorization.',patch:{ram:'ADMIN123 / MySecret456\nSigV4 подпись #1: готова'},explanation:'Клиент вычисляет подпись непосредственно перед отправкой запроса. Подпись зависит от постоянного Secret Key и содержимого HTTP-запроса. Это не JWT.',focus:['c-ram']}),
+  step('Отправка STS AssumeRole','request','client',{phase:'Вход',method:'POST /',endpoint:'Console :9001 → STS',code:reqSts,explanation:'Это настоящий сетевой этап в учебном сценарии. Между клиентом и RustFS уходит HTTP-запрос с AccessKeyId внутри Credential и вычисленной SigV4-подписью. SecretAccessKey не передаётся отдельным открытым полем.',focus:['c-ram']}),
+  step('Проверка подписи сервером','local','server',{phase:'Вход',code:'1. Из Authorization получить AccessKeyId = ADMIN123\n2. Найти сохранённый SecretAccessKey = MySecret456\n3. Пересчитать ожидаемую SigV4-подпись\n4. Сравнить с Signature из HTTP-заголовка\n\nПодписи совпали → аутентификация успешна.',patch:{data:'Проверка SigV4: OK'},explanation:'Сервер не доверяет флагу auth.isAdmin в браузере. Он проверяет подпись самостоятельно, используя секрет, известный серверу.',focus:['s-root','s-data']}),
+  step('Проверка разрешения STS','local','server',{phase:'Вход',code:'identity = root/admin\naction   = sts:AssumeRole\n\nПроверка применимых правил RustFS.\nРезультат: разрешено.',patch:{data:'SigV4: OK\nSTS AssumeRole: разрешено'},explanation:'Аутентификация доказала владение ключом. Авторизация определяет, разрешено ли запрашивать временную сессию. Root и IAM-пользователи имеют разные правила проверки.',focus:['s-policy','s-data']}),
+  step('Генерация временной сессии','local','server',{phase:'STS',code:`Создать:\n  AccessKeyId     = ${tempKey}\n  SecretAccessKey = ${tempSecret}\n  SessionToken    = ${token}\n  Expiration      = ${expiration}\n\nСвязать с исходной идентичностью ADMIN123.`,patch:{session:'AccessKeyId: TMP7F83AZ91\nSecretKey: TempSecret-9FA7-X\nSessionToken: eyJ...\nExpiration: 14:00 UTC'},explanation:'Временные ключи создает сервер. Токен принадлежит сессии, а не является SigV4-подписью. В этом сценарии STS выдаёт XML-ответ.',focus:['s-session']}),
+  step('Сервер возвращает STS credentials','response','server',{phase:'STS',method:'200 OK',endpoint:'Console :9001 → Browser',code:respSts,explanation:'Это HTTP-ответ, который идёт от RustFS к клиенту. Клиент получает новые временные Access Key, Secret Key, Session Token и Expiration.',focus:['s-session']}),
+  step('Клиент сохраняет сессию','local','client',{phase:'Вход завершён',code:`localStorage["auth.credentials"] = {\n  AccessKeyId: "${tempKey}",\n  SecretAccessKey: "${tempSecret}",\n  SessionToken: "${token}",\n  Expiration: "${expiration}"\n};\nlocalStorage["auth.isAdmin"] = "true";`,patch:{ui:'Dashboard открыт: пользователь вошёл',storage:'auth.credentials: STS набор сохранён\nauth.isAdmin: true',ram:'STS creds доступны JS\nTEMP key + secret + token'},explanation:'Схема хранения показана как localStorage — для учебного сценария. В реальном браузере проверь, хранит ли твоя версия Console данные в localStorage или sessionStorage. Состояние auth.isAdmin не заменяет серверную проверку прав.',focus:['c-ui','c-local','c-ram']}),
+  step('Нажата кнопка CreateBucket','local','client',{phase:'S3 API',code:'Пользователь вводит имя:\n  s3-course-lesson1\n\nНажимает [ Create Bucket ].\n\nЭто пока только событие UI.',patch:{ui:'CreateBucket → s3-course-lesson1'},explanation:'Действие в интерфейсе ещё не означает создание бакета. Сейчас JavaScript должен подготовить защищённый S3-запрос.',focus:['c-ui']}),
+  step('Новая SigV4-подпись','local','client',{phase:'S3 API',code:`method = PUT\npath = /s3-course-lesson1\nAccessKeyId = ${tempKey}\nSecretAccessKey = ${tempSecret}\nSessionToken = ${token}\n\nSigV4(PUT + path + headers + body, временный SecretKey)\n\n→ signature #2, НЕ signature #1`,patch:{ram:'STS creds доступны JS\nSigV4 подпись #2: готова'},explanation:'Для создания бакета используется временный Secret Key. Клиент подписывает конкретный PUT-запрос и добавляет SessionToken в отдельный заголовок.',focus:['c-ram','c-local']}),
+  step('Отправлен CreateBucket','request','client',{phase:'S3 API',method:'PUT /s3-course-lesson1',endpoint:'S3 API :9000',code:reqBucket,explanation:'Этот HTTP-запрос явно отправляется на S3 API RustFS. В нём находятся временный Access Key (Credential), Session Token и новая SigV4-подпись.',focus:['c-ram']}),
+  step('Проверка S3-запроса','local','server',{phase:'S3 API',code:`1. Найти временный AccessKeyId: ${tempKey}\n2. Проверить SessionToken и Expiration\n3. Получить временный SecretKey\n4. Вычислить ожидаемую SigV4 #2\n5. Сравнить подписи\n6. Проверить разрешение s3:CreateBucket\n\nВсе проверки: OK.`,patch:{data:'SigV4 #2: OK\nSTS срок: действителен\ns3:CreateBucket: Allow'},explanation:'Именно здесь сервер принимает решение. Изменить localStorage или JS и тем самым заставить RustFS пропустить проверку нельзя: сервер проверяет все полномочия сам.',focus:['s-session','s-policy','s-data']}),
+  step('Сервер создаёт бакет','local','server',{phase:'S3 API',code:'createBucket("s3-course-lesson1")\n\nСоздать запись и необходимые метаданные бакета.\nРезультат: SUCCESS.',patch:{data:'Бакеты:\n✓ s3-course-lesson1\n\nCreateBucket: SUCCESS'},explanation:'Только после успешной аутентификации и авторизации RustFS изменяет состояние своего хранилища.',focus:['s-data']}),
+  step('Ответ на CreateBucket','response','server',{phase:'S3 API',method:'200 OK',endpoint:'S3 API :9000 → Browser',code:'HTTP/1.1 200 OK\nLocation: /s3-course-lesson1\nContent-Length: 0',explanation:'RustFS отвечает клиенту о результате операции. Этот ответ завершает конкретный PUT-запрос.',focus:['s-data']}),
+  step('Dashboard обновлён','local','client',{phase:'S3 API',code:'Получен успешный HTTP-ответ.\n\nUI: показать бакет в списке.\n\nauth.credentials остаётся доступным JS;\nновый STS-запрос не нужен.',patch:{ui:'Бакет s3-course-lesson1 создан'},explanation:'Браузер обновляет представление. Временные credentials продолжают использоваться для последующих API-запросов до окончания срока действия.',focus:['c-ui','c-local']}),
+  step('Ещё один запрос: ListBuckets','request','client',{phase:'S3 API',method:'GET /',endpoint:'S3 API :9000',code:reqList,explanation:'Даже после успешного CreateBucket каждый новый S3-запрос подписывается заново. Нельзя просто повторно использовать подпись от PUT: запрос отличается.'}),
+  step('ListBuckets: проверка и ответ','response','server',{phase:'S3 API',method:'200 OK',endpoint:'S3 API :9000 → Browser',code:'HTTP/1.1 200 OK\nContent-Type: application/xml\n\n<ListAllMyBucketsResult>\n  <Buckets>\n    <Bucket><Name>s3-course-lesson1</Name></Bucket>\n  </Buckets>\n</ListAllMyBucketsResult>',explanation:'RustFS вновь проверил временную сессию, SigV4 и право на просмотр бакетов, после чего вернул результат.',focus:['s-policy','s-data']}),
+  step('Срок действия временных ключей истёк','local','client',{phase:'Истечение сессии',code:'now >= auth.credentials.Expiration\n\nВременные credentials истекли.\nДаже если браузер сохранил их,\nони больше не дают доступ к защищённым операциям.',patch:{ui:'Временная сессия истекла',storage:'auth.credentials: STS набор истёк\nauth.isAdmin: true (не имеет силы)',ram:'STS creds: истекли'},explanation:'Expiration оценивается сервером. Подмена флага auth.isAdmin или времени в UI не продлевает STS-сессию.',focus:['c-ui','c-local','s-session']}),
+  step('Запрос с истёкшими credentials','request','client',{phase:'Истечение сессии',method:'GET /',endpoint:'S3 API :9000',code:`GET / HTTP/1.1\nHost: 127.0.0.1:9000\nX-Amz-Date: 20261019T143000Z\nX-Amz-Security-Token: ${token}\nAuthorization: AWS4-HMAC-SHA256\n Credential=${tempKey}/20261019/us-east-1/s3/aws4_request,\n SignedHeaders=host;x-amz-date;x-amz-security-token,\n Signature=<новая-подпись-но-ключ-истёк>`,explanation:'Клиент отправил подписанный запрос, но его временные credentials больше не действительны. Подпись не отменяет ограничение по Expiration.'}),
+  step('Сервер отказывает','response','server',{phase:'Истечение сессии',method:'403 Forbidden',endpoint:'S3 API :9000 → Browser',code:'HTTP/1.1 403 Forbidden\nContent-Type: application/xml\n\n<Error>\n  <Code>ExpiredToken</Code>\n  <Message>The provided token has expired.</Message>\n</Error>\n\n(Код ошибки — иллюстрация; зависит от версии.)',patch:{data:'ListBuckets: отклонён\nПричина: истёк STS'},explanation:'Сервер самостоятельно отклоняет запрос. Чтобы продолжить, клиенту требуется получить действительные credentials заново. На этом симуляция завершена.',focus:['s-session','s-data']})
+];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+let current=0;
+function computeState(i) {const s={...state0};for(let n=0;n<=i;n++){Object.assign(s,steps[n].patch||{})}return s}
+function pairs(raw){return raw.split('\n').filter(Boolean).map(x=>{let j=x.indexOf(':'); let key=j<0?'':x.slice(0,j); let val=j<0?x:x.slice(j+1).trim(); let tone=/нет|отсутств|истёк|отклонён/i.test(val)?'bad':/OK|SUCCESS|true|готов|разрешено|создан|сохранён/i.test(val)?'good':'';return `<div class="pair"><span class="key">${esc(key)}</span><span class="val ${tone||''}">${esc(val)}</span></div>`}).join('')}
+function render(){const st=steps[current],s=computeState(current);
+  $('client-ui').innerHTML=pairs('UI: '+s.ui);
+  $('client-cookie').innerHTML=pairs(s.cookies.replace('mongo-express=s%3A... [чужая]','mongo-express: s%3A... (не RustFS)').replace('i18n_redirected=en','i18n_redirected: en'));
+  $('client-local').innerHTML=pairs(s.storage);
+  $('client-ram').innerHTML=pairs(s.ram);
+  $('server-root').innerHTML=pairs(s.root);
+  $('server-policy').innerHTML=pairs(s.policy);
+  $('server-session').innerHTML=pairs(s.session);
+  $('server-data').innerHTML=pairs(s.data);
+  document.querySelectorAll('.scope').forEach(el=>el.classList.remove('hot','hot-s'));
+  (st.focus||[]).forEach(id=>{$(id)?.classList.add(id.startsWith('s-')?'hot-s':'hot')});
+  const isNetwork=st.kind==='request'||st.kind==='response';
+  $('event-type').textContent=st.kind==='request'?'REQUEST':st.kind==='response'?'RESPONSE':'LOCAL';
+  $('event-class').textContent=st.kind==='request'?'HTTP-запрос: клиент → сервер':st.kind==='response'?'HTTP-ответ: сервер → клиент':st.side==='server'?'Локальное действие сервера':'Локальное действие клиента';
+  $('event-class').className='step-category '+(!isNetwork?'local':st.kind==='response'?'check':'');
+  $('event-title').textContent=st.title;
+  $('event-sub').textContent=isNetwork?'Ниже — содержимое передаваемого HTTP-сообщения.':'Действие выполняется внутри '+(st.side==='server'?'RustFS.':'браузера.')+' Сетевой передачи нет.';
+  const dir=$('direction');dir.style.display=isNetwork?'flex':'none';dir.className='direction '+(st.kind==='response'?'left':'right');
+  $('from').textContent=st.kind==='response'?'Клиент':'Клиент';$('to').textContent='Сервер';
+  $('packet').className='packet'+(!isNetwork?' local-box':'');
+  $('packet-method').textContent=isNetwork?(st.method||'HTTP'):'ПСЕВДОКОД / СОСТОЯНИЕ';
+  $('packet-endpoint').textContent=isNetwork?(st.endpoint||''):'Без сетевого запроса';
+  $('packet-code').textContent=st.code;
+  $('wire-note').innerHTML=isNetwork?(st.kind==='request'?'<b>Передача:</b> запрос отправлен от клиента к серверу.':'<b>Передача:</b> ответ отправлен от сервера клиенту.'):'<b>Сети нет:</b> это вычисление, обработка или изменение локального состояния.';
+  $('explanation').innerHTML=esc(st.explanation).replace(/`([^`]+)`/g,'<code>$1</code>');
+  $('counter').textContent=`Шаг ${current+1} / ${steps.length}`;$('stage-name').textContent=st.phase;
+  $('progress-fill').style.width=(100*(current+1)/steps.length)+'%';
+  $('prev').disabled=current===0;$('next').disabled=current===steps.length-1;
+  $('next').textContent=current===steps.length-1?'Конец сценария ✓':'Далее →';
+  document.querySelectorAll('.step-btn').forEach((el,i)=>{el.className='step-btn'+(i===current?' active':i<current?' done':'');el.setAttribute('aria-current',i===current?'step':'false');el.title=`${i+1}. ${steps[i].title}`});
+  const active=document.querySelector('.step-btn.active');if(active)active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+}
+$('steps').innerHTML=steps.map((s,i)=>`<button class="step-btn" data-i="${i}" title="${esc(s.title)}" aria-label="Шаг ${i+1}: ${esc(s.title)}">${String(i+1).padStart(2,'0')}</button>`).join('');
+$('steps').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;current=Number(b.dataset.i);render()});
+$('next').addEventListener('click',()=>{current=Math.min(steps.length-1,current+1);render()});
+$('prev').addEventListener('click',()=>{current=Math.max(0,current-1);render()});
+$('reset').addEventListener('click',()=>{current=0;render()});
+document.addEventListener('keydown',e=>{if(e.target instanceof HTMLElement&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key==='ArrowRight'){current=Math.min(steps.length-1,current+1);render()}else if(e.key==='ArrowLeft'){current=Math.max(0,current-1);render()}});
+render();
+</script>
+</body></html>
