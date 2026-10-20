@@ -373,7 +373,6 @@ aws configure get s3.addressing_style --profile rustfs-lab
 Убедись, что **Secret Access Key не выводится** в историю терминала, заметку или скриншот. Не копируй содержимое `~/.aws/credentials` в отчёт.
 
 ### 9.4. Получи исходный список бакетов
-
 ```fish
 aws --profile rustfs-lab \
     --endpoint-url $RUSTFS_ENDPOINT \
@@ -902,5 +901,3 @@ storage..
 10. [RustFS — S3 Compatibility Matrix](https://docs.rustfs.com/en/reference/s3-compatibility)
 11. [RustFS — Bucket deletion](https://docs.rustfs.com/en/administration/data/bucket/deletion)
 12. [RustFS — Python SDK guide, region and path-style](https://docs.rustfs.com/en/developer/sdk/python)
-
-**Дата сверки с документацией:** 2026-10-19. Примеры HTTP и XML с заполнителями — учебные, а не записи с твоего сервера. Поведение установленного RustFS проверяется командами и журналами лаборатории.

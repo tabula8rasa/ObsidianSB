@@ -463,5 +463,3 @@ report.pdf
 4. [RustFS — Docker installation](https://docs.rustfs.com/en/installation/container/docker)
 5. [RustFS — Status checks](https://docs.rustfs.com/en/operations/status-check)
 6. [RustFS — Installation modes](https://docs.rustfs.com/en/installation/linux)
-
-**Дата сверки с документацией:** 2026-10-19. Конкретные названия элементов Console и дополнительные поддерживаемые API зависят от версии установленного RustFS.
