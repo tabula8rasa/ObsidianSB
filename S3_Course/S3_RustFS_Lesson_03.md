@@ -13,7 +13,6 @@ lesson: 3
 module: 1
 status: study
 ---
-
 # Урок 03. Buckets: создание, перечисление, проверка и удаление
 
 > [!abstract] Цель урока
