@@ -11,7 +11,6 @@ lesson: 10
 module: 2
 status: study
 ---
-
 # Урок 10. Проверка целостности: ETag, MD5 и SHA-256
 
 > [!abstract] Цель урока

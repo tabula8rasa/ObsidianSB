@@ -11,7 +11,6 @@ lesson: 11
 module: 2
 status: study
 ---
-
 # Урок 11. Versioning: перезапись, удаление и восстановление
 
 > [!abstract] Цель урока

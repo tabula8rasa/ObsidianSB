@@ -11,7 +11,6 @@ lesson: 9
 module: 2
 status: study
 ---
-
 # Урок 09. Multipart Upload: один объект, несколько запросов
 
 > [!abstract] Цель урока

@@ -12,7 +12,6 @@ lesson: 12
 module: 2
 status: study
 ---
-
 # Урок 12. Управление доступом: кто может выполнить запрос
 
 > [!abstract] Цель урока
@@ -80,20 +79,147 @@ AWS IAM обслуживает множество сервисов AWS. RustFS �
 
 ## 5. Практика: один пользователь, один бакет
 
-1. Администратором создай приватные бакеты `lesson12-private` и `lesson12-other`; положи в каждый `hello.txt`. Не добавляй публичных разрешений.
-2. В разделе Identity Console создай пользователя `lesson12-reader` с отдельным секретом. Назначь пользователю показанную политику. Не добавляй широких встроенных политик или групп.
-3. Выполни `aws configure --profile lesson12-reader`, введи его реквизиты и регион лаборатории. Проверь переменные окружения: они не должны подменять credentials.
-4. Выполни два запроса:
+**Цель:** настроить в RustFS пользователя, который может просматривать список объектов и скачивать файлы из `lesson12-private`, но не может загружать туда файлы или читать `lesson12-other`.
+
+Понадобятся три раздела RustFS Console: **Browser** (бакеты и объекты), **Policies** (правила доступа), **Users** (пользователи). Для этой практики раздел **Access Keys** не нужен.
+
+### Шаг 1. Создай два бакета (Browser)
+
+1. Открой RustFS Console по адресу `http://127.0.0.1:9001` и войди под администратором.
+2. В левом меню открой **Browser**.
+3. Нажми **Create Bucket**, укажи имя `lesson12-private` и подтверди создание.
+4. Аналогичным образом создай второй бакет — `lesson12-other`.
+
+**Результат:** в Browser видны два бакета: `lesson12-private` и `lesson12-other`. Не включай публичный доступ и не добавляй bucket policy.
+
+### Шаг 2. Загрузи тестовый файл в оба бакета (Browser)
+
+1. Создай на компьютере файл `hello.txt` с текстом `Hello RustFS`.
+2. В **Browser** открой `lesson12-private`, нажми **Upload** и загрузи `hello.txt`.
+3. Вернись к списку бакетов, открой `lesson12-other` и загрузи тот же `hello.txt`.
+
+**Результат:** в каждом бакете лежит объект с ключом `hello.txt`. Пока все действия выполняются от имени администратора.
+
+### Шаг 3. Создай политику доступа (Policies)
+
+1. Открой в левом меню **Policies**.
+2. Нажми **Create Policy** или **Add Policy**.
+3. Укажи имя политики `lesson12-readonly`.
+4. В редактор JSON вставь:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::lesson12-private"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::lesson12-private/*"
+    }
+  ]
+}
+```
+
+5. Сохрани политику (**Save** / **Create**).
+
+Разрешение `s3:ListBucket` позволяет получить список объектов в `lesson12-private`. Разрешение `s3:GetObject` позволяет скачивать объекты из него. Политика **не разрешает** загрузку (`s3:PutObject`) и **не выдаёт** прав на `lesson12-other`.
+
+### Шаг 4. Создай пользователя и назначь ему политику (Users)
+
+1. В левом меню открой **Users**.
+2. Нажми **Create User** / **Add User**.
+3. Заполни параметры:
+   - **Access Key / Username:** `lesson12-reader`.
+   - **Secret Key:** отдельный секретный ключ, который сохранишь для AWS CLI.
+   - **Status:** `Enabled`.
+   - **Groups:** не добавляй.
+   - **Policies:** только `lesson12-readonly`.
+4. Создай пользователя (**Create** / **Submit**).
+5. Если выбрать политику при создании нельзя, открой карточку пользователя и прикрепи `lesson12-readonly` через **Policies / Attached Policies**.
+
+**Важно:** не назначай встроенные широкие политики `readonly`, `readwrite`, `consoleAdmin` или другие группы. Сохрани Access Key и Secret Key — их потребуется ввести в AWS CLI. Secret Key никому не отправляй.
+
+### Шаг 5. Настрой отдельный профиль AWS CLI
+
+В терминале Fish выполни:
+
+```fish
+aws configure --profile lesson12-reader
+```
+
+Введи значения при запросе CLI:
+
+```text
+AWS Access Key ID: lesson12-reader
+AWS Secret Access Key: <секрет пользователя из шага 4>
+Default region name: us-east-1
+Default output format: json
+```
+
+`us-east-1` здесь служит регионом учебного профиля AWS CLI. Для запросов к локальному RustFS указывается свой endpoint `http://127.0.0.1:9000`.
+
+Удали переменные окружения Fish, которые могут подменять выбранные credentials:
+
+```fish
+set -e AWS_ACCESS_KEY_ID
+set -e AWS_SECRET_ACCESS_KEY
+set -e AWS_SESSION_TOKEN
+set -e AWS_PROFILE
+```
+
+### Шаг 6. Проверь четыре операции через AWS CLI
+
+Выполняй команды в одном каталоге, используя **только профиль** `lesson12-reader`.
+
+**Тест 1. Скачать объект из разрешённого бакета — успех:**
 
 ```fish
 aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api get-object --bucket lesson12-private --key hello.txt downloaded.txt
+```
+
+**Ожидаемый результат:** команда выполняется успешно, в текущем каталоге появляется файл `downloaded.txt`.
+
+**Тест 2. Скачать объект из другого бакета — отказ:**
+
+```fish
 aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api get-object --bucket lesson12-other --key hello.txt forbidden.txt
 ```
 
-Первый запрос должен вернуть объект, второй — `AccessDenied`. Затем тем же профилем попробуй загрузить `downloaded.txt` в разрешённый бакет: запись также должна завершиться отказом.
+**Ожидаемый результат:** `AccessDenied`. Для `lesson12-other` пользователь не имеет разрешения `s3:GetObject`.
 
-> [!important] Проверяй границу
-> Успешное чтение доказывает наличие разрешения. Отказ соседнему бакету и отказ записи подтверждают ограничение проверенных операций. Не выполняй проверки административным профилем.
+**Тест 3. Загрузить объект в разрешённый бакет — отказ:**
+
+```fish
+aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api put-object --bucket lesson12-private --key test.txt --body downloaded.txt
+```
+
+**Ожидаемый результат:** `AccessDenied`, поскольку политика не разрешает `s3:PutObject`.
+
+**Тест 4. Получить список объектов разрешённого бакета — успех:**
+
+```fish
+aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api list-objects-v2 --bucket lesson12-private
+```
+
+**Ожидаемый результат:** JSON со списком объектов, в том числе `hello.txt`.
+
+### Шаг 7. Зафиксируй результат
+
+- [ ] `get-object` из `lesson12-private` выполнился успешно.
+- [ ] `get-object` из `lesson12-other` вернул `AccessDenied`.
+- [ ] `put-object` в `lesson12-private` вернул `AccessDenied`.
+- [ ] `list-objects-v2` для `lesson12-private` выполнился успешно.
+
+> [!important] Что доказано
+> RustFS проверяет разрешения на запрошенные операции. Корректные Access Key и Secret Key подтверждают идентичность, но не дают неограниченных прав. Успешное чтение и два отказа демонстрируют границу заданной политики. Проверки выполняй не административным, а новым ограниченным профилем.
+
+> [!tip] Если результат не совпал с ожидаемым
+> Проверь Access Key и Secret Key профиля `lesson12-reader`, переменные окружения, назначенные пользователю политики и группы, а также bucket policy. Не исправляй `AccessDenied` включением публичного доступа.
 
 ## 6. Самостоятельные задания
 
