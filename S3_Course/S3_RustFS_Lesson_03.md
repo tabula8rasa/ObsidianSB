@@ -379,7 +379,7 @@ aws --profile rustfs-lab \
     --endpoint-url $RUSTFS_ENDPOINT \
     s3api list-buckets \
     --query 'Buckets[].Name' \
-    --output json
+    --output jsonПродолжаем использовать
 ```
 
 Запиши имена бакетов. После урока 1 среди них должен находиться `s3-course-lesson1`, если его не удаляли. В этом уроке **не удаляем и не меняем** данные из предыдущих упражнений.
