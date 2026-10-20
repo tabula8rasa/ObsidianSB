@@ -1,0 +1,199 @@
+[4ms3[24m()                                                                        [4ms3[24m()
+
+[1mName[0m
+     s3 -
+
+[1mDescription[0m
+     This  section  explains  prominent  concepts  and  notations  in the set of
+     high-level S3 commands provided.
+
+     If you are looking for the low level S3 commands for the  CLI,  please  see
+     the  [1ms3api  [22mcommand reference page <https://docs.aws.amazon.com/cli/latest/
+     reference/s3api/index.html>.
+
+   [1mPath Argument Type[0m
+     Whenever using a command, at least one path  argument  must  be  specified.
+     There are two types of path arguments: [1mLocalPath [22mand [1mS3Uri[22m.
+
+     [1mLocalPath[22m:  represents  the  path  of a local file or directory.  It can be
+     written as an absolute path or relative path.
+
+     [1mS3Uri[22m: represents the location of an S3 object, prefix,  or  bucket.   This
+     must   be   written   in   the  form  [1ms3://amzn-s3-demo-bucket/mykey  [22mwhere
+     [1mamzn-s3-demo-bucket [22mis the specified S3 bucket, [1mmykey [22mis the  specified  S3
+     key.   The  path argument must begin with [1ms3:// [22min order to denote that the
+     path argument refers to an S3 object. Note that prefixes are  separated  by
+     forward  slashes.  For  example,  if  the S3 object [1mmyobject [22mhad the prefix
+     [1mmyprefix[22m, the S3 key would be [1mmyprefix/myobject[22m, and if the object  was  in
+     the      bucket     [1mamzn-s3-demo-bucket[22m,     the     [1mS3Uri     [22mwould     be
+     [1ms3://amzn-s3-demo-bucket/myprefix/myobject[22m.
+
+     [1mS3Uri [22malso supports S3 access points. To  specify  an  access  point,  this
+     value must be of the form [1ms3://<access-point-arn>/<key>[22m. For example if the
+     access     point    [1mmyaccesspoint    [22mto    be    used    has    the    ARN:
+     [1marn:aws:s3:us-west-2:123456789012:accesspoint/myaccesspoint [22mand the  object
+     being   accessed   has  the  key  [1mmykey[22m,  then  the  [1mS3URI  [22mused  must  be:
+     [1ms3://arn:aws:s3:us-west-2:123456789012:accesspoint/myaccesspoint/mykey[22m.
+     Similar to bucket names, you can also use prefixes with access  point  ARNs
+     for  the [1mS3Uri[22m. For example: [1ms3://arn:aws:s3:us-west-2:123456789012:access-[0m
+     [1mpoint/myaccesspoint/myprefix/[0m
+
+   [1mOrder of Path Arguments[0m
+     Every command takes one or two positional path arguments.  The  first  path
+     argument represents the source, which is the local file/directory or S3 ob-
+     ject/prefix/bucket that is being referenced.  If there is a second path ar-
+     gument, it represents the destination, which is the local file/directory or
+     S3  object/prefix/bucket that is being operated on.  Commands with only one
+     path argument do not have a destination because the operation is being per-
+     formed only on the source.
+
+   [1mSingle Local File and S3 Object Operations[0m
+     Some commands perform operations only on single files and S3 objects.   The
+     following commands are single file/object operations if no [1m--recursive [22mflag
+     is provided.
+
+        * [1mcp[0m
+
+        * [1mmv[0m
+
+        * [1mrm[0m
+
+     For this type of operation, the first path argument, the source, must exist
+     and  be  a local file or S3 object.  The second path argument, the destina-
+     tion, can be the name of a local file, local directory, S3 object, S3  pre-
+     fix, or S3 bucket.
+
+     The  destination is indicated as a local directory, S3 prefix, or S3 bucket
+     if it ends with a forward slash or back slash.  The use of slash depends on
+     the path argument type.  If the path argument is a [1mLocalPath[22m, the  type  of
+     slash  is  the  separator  used  by the operating system.  If the path is a
+     [1mS3Uri[22m, the forward slash must always be used.  If a slash is at the end  of
+     the  destination, the destination file or object will adopt the name of the
+     source file or object.  Otherwise, if there is no slash  at  the  end,  the
+     file  or  object will be saved under the name provided.  See examples in [1mcp[0m
+     and [1mmv [22mto illustrate this description.
+
+   [1mDirectory and S3 Prefix Operations[0m
+     Some commands only perform operations on the contents of a local  directory
+     or  S3  prefix/bucket.  Adding or omitting a forward slash or back slash to
+     the end of any path argument, depending on its type, does  not  affect  the
+     results  of  the operation.  The following commands will always result in a
+     directory or S3 prefix/bucket operation:
+
+     * [1msync[0m
+
+     * [1mmb[0m
+
+     * [1mrb[0m
+
+     * [1mls[0m
+
+   [1mUse of Exclude and Include Filters[0m
+     Currently, there is no support for the use of UNIX  style  wildcards  in  a
+     command's  path arguments.  However, most commands have [1m--exclude "<value>"[0m
+     and [1m--include "<value>" [22mparameters that can  achieve  the  desired  result.
+     These  parameters  perform  pattern matching to either exclude or include a
+     particular file or object.  The following pattern symbols are supported.
+
+        * [1m*[22m: Matches everything
+
+        * [1m?[22m: Matches any single character
+
+        * [1m[sequence][22m: Matches any character in [1msequence[0m
+
+        * [1m[!sequence][22m: Matches any character not in [1msequence[0m
+
+     Any number of these parameters can be passed to a command.  You can do this
+     by providing an [1m--exclude [22mor [1m--include [22margument multiple times, e.g.  [1m--in-[0m
+     [1mclude "*.txt" --include "*.png"[22m.  When there are multiple filters, the rule
+     is the filters that appear later in the command take precedence  over  fil-
+     ters  that appear earlier in the command.  For example, if the filter para-
+     meters passed to the command were
+
+        --exclude "*" --include "*.txt"
+
+     All files will be excluded from the command except for  files  ending  with
+     [1m.txt  [22mHowever, if the order of the filter parameters was changed to
+
+        --include "*.txt" --exclude "*"
+
+     All files will be excluded from the command.
+
+     Each filter is evaluated against the [1msource directory[22m.  If the source loca-
+     tion is a file instead of a directory, the directory containing the file is
+     used  as  the source directory.  For example, suppose you had the following
+     directory structure:
+
+        /tmp/foo/
+          .git/
+          |---config
+          |---description
+          foo.txt
+          bar.txt
+          baz.jpg
+
+     In the command [1maws s3 sync /tmp/foo s3://bucket/ [22mthe  source  directory  is
+     [1m/tmp/foo[22m.   Any  include/exclude  filters will be evaluated with the source
+     directory prepended.  Below are several examples to demonstrate this.
+
+     Given the directory structure above and the  command  [1maws  s3  cp  /tmp/foo[0m
+     [1ms3://bucket/  --recursive  --exclude  ".git/*"[22m,  the  files [1m.git/config [22mand
+     [1m.git/description [22mwill be excluded from the files to upload because the  ex-
+     clude  filter  [1m.git/*  [22mwill  have the source prepended to the filter.  This
+     means that:
+
+        /tmp/foo/.git/* -> /tmp/foo/.git/config       (matches, should exclude)
+        /tmp/foo/.git/* -> /tmp/foo/.git/description  (matches, should exclude)
+        /tmp/foo/.git/* -> /tmp/foo/foo.txt  (does not match, should include)
+        /tmp/foo/.git/* -> /tmp/foo/bar.txt  (does not match, should include)
+        /tmp/foo/.git/* -> /tmp/foo/baz.jpg  (does not match, should include)
+
+     The command [1maws s3 cp /tmp/foo/ s3://bucket/  --recursive  --exclude  "ba*"[0m
+     will exclude [1m/tmp/foo/bar.txt [22mand [1m/tmp/foo/baz.jpg[22m:
+
+        /tmp/foo/ba* -> /tmp/foo/.git/config      (does not match, should include)
+        /tmp/foo/ba* -> /tmp/foo/.git/description (does not match, should include)
+        /tmp/foo/ba* -> /tmp/foo/foo.txt          (does not match, should include)
+        /tmp/foo/ba* -> /tmp/foo/bar.txt  (matches, should exclude)
+        /tmp/foo/ba* -> /tmp/foo/baz.jpg  (matches, should exclude)
+
+     Note  that,  by default, [4mall[24m [4mfiles[24m [4mare[24m [4mincluded[24m.  This means that providing
+     [1monly [22man [1m--include [22mfilter will not change what files are transferred.  [1m--in-[0m
+     [1mclude [22mwill only re-include files that have been excluded from an  [1m--exclude[0m
+     filter.   If you only want to upload files with a particular extension, you
+     need to first exclude all files, then re-include the files with the partic-
+     ular extension.  This command will upload [1monly [22mfiles ending with [1m.jpg[22m:
+
+        aws s3 cp /tmp/foo/ s3://bucket/ --recursive --exclude "*" --include "*.jpg"
+
+     If you wanted to include both [1m.jpg [22mfiles as well as [1m.txt [22mfiles you can run:
+
+        aws s3 cp /tmp/foo/ s3://bucket/ --recursive \
+            --exclude "*" --include "*.jpg" --include "*.txt"
+
+[1mSynopsis[0m
+        aws s3 <Command> [<Arg> ...]
+
+[1mOptions[0m
+     [4mNone[0m
+
+[1mAvailable Commands[0m
+     * cp
+
+     * ls
+
+     * mb
+
+     * mv
+
+     * presign
+
+     * rb
+
+     * rm
+
+     * sync
+
+     * website
+
+                                                                            [4ms3[24m()
