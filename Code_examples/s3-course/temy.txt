@@ -1,0 +1,8 @@
+Один RustFS из нескольких дисков - rebalance, pool decommission
+Bucket event
+bucket replication
+site replication
+sse settings
+oidc setting
+
+S3 Tables
