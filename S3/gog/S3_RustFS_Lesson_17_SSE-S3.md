@@ -7,7 +7,6 @@ lesson: 17
 module: 2
 status: study
 ---
-
 # Урок 17. SSE-S3: шифрование объектов силами хранилища
 
 > [!abstract] Цель урока
