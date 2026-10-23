@@ -12,7 +12,6 @@ lesson: 15
 module: 2
 status: study
 ---
-
 # Урок 15. Lifecycle и Object Lock
 
 > [!abstract] Цель урока
