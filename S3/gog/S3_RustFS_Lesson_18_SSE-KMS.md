@@ -7,7 +7,6 @@ lesson: 18
 module: 2
 status: study
 ---
-
 # Урок 18. SSE-KMS: ключи, Vault и экран SSE Configuration
 
 > [!abstract] Цель урока
