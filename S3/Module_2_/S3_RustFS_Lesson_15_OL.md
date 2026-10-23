@@ -5,7 +5,6 @@ tags:
   - object-lock
   - versioning
 ---
-
 # S3 Object Lock (RustFS)
 
 **Object Lock** — механизм WORM (*Write Once, Read Many*), который защищает **конкретные версии объектов** от окончательного удаления в течение заданного срока или до снятия удержания.
