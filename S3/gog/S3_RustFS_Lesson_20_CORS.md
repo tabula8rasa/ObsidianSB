@@ -7,7 +7,6 @@ lesson: 20
 module: 2
 status: study
 ---
-
 # Урок 20. CORS: браузерные запросы к RustFS
 
 > [!abstract] Цель урока

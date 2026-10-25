@@ -7,7 +7,6 @@ lesson: 16
 module: 2
 status: study
 ---
-
 # Урок 16. TLS: защита соединения с RustFS
 
 > [!abstract] Цель урока

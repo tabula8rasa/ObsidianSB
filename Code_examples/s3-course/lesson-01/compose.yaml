@@ -1,6 +1,45 @@
 services:
+  vault:
+    image: hashicorp/vault:1.19
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        vault server -dev -dev-listen-address=0.0.0.0:8200 &
+        pid=$$!
+
+        trap 'kill "$$pid" 2>/dev/null || true' TERM INT
+
+        until vault status >/dev/null 2>&1; do
+          kill -0 "$$pid" 2>/dev/null || exit 1
+          sleep 1
+        done
+
+        vault secrets enable transit
+        vault write -f transit/keys/rustfs-default-key
+
+        echo "Vault Transit is ready"
+        wait "$$pid"
+
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "lab-only-token"
+      VAULT_TOKEN: "lab-only-token"
+      VAULT_ADDR: "http://127.0.0.1:8200"
+
+    ports:
+      - "127.0.0.1:8200:8200"
+
+    healthcheck:
+      test: ["CMD-SHELL", "vault read transit/keys/rustfs-default-key >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+        
   rustfs:
     image: rustfs/rustfs:latest
+    depends_on:
+          vault:
+            condition: service_healthy
+    
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?set in .env}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?set in .env}
@@ -8,11 +47,18 @@ services:
       RUSTFS_ADDRESS: ":9000"
       RUSTFS_CONSOLE_ADDRESS: ":9001"
       RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_KMS_ENABLE: "true"
+      RUSTFS_KMS_BACKEND: "vault-transit"
+      RUSTFS_KMS_VAULT_ADDRESS: "http://vault:8200"
+      RUSTFS_KMS_VAULT_TOKEN: "lab-only-token"
+      RUSTFS_KMS_VAULT_MOUNT_PATH: "transit"
+      RUSTFS_KMS_DEFAULT_KEY_ID: "rustfs-default-key"
+      RUSTFS_KMS_ALLOW_INSECURE_DEV_DEFAULTS: "true"
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     volumes:
       - rustfs-data:/data
-
+  
 volumes:
   rustfs-data:
