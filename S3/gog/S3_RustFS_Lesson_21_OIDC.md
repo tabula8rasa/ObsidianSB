@@ -7,7 +7,6 @@ lesson: 21
 module: 2
 status: study
 ---
-
 # Урок 21. OIDC Settings: вход в RustFS через внешнего провайдера
 
 > [!abstract] Цель урока
