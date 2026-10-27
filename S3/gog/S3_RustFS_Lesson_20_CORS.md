@@ -55,9 +55,9 @@ sequenceDiagram
 
 Для проверенной серверной конфигурации RustFS используются **две отдельные переменные**:
 
-| Переменная | Для какого listener |
-|---|---|
-| `RUSTFS_CORS_ALLOWED_ORIGINS` | S3 API на порту `9000` |
+| Переменная                            | Для какого listener     |
+| ------------------------------------- | ----------------------- |
+| `RUSTFS_CORS_ALLOWED_ORIGINS`         | S3 API на порту `9000`  |
 | `RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS` | Console на порту `9001` |
 
 В отличие от привычных настроек CORS **на уровне бакета AWS S3**, документированная здесь конфигурация RustFS задаёт список origin для **S3 listener**. На присланных страницах **SSE Configuration** и **OIDC Providers** CORS не настраивается.

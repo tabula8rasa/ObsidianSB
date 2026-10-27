@@ -7,7 +7,6 @@ lesson: 19
 module: 2
 status: study
 ---
-
 # Урок 19. SSE-C: ключ шифрования предоставляет клиент
 
 > [!abstract] Цель урока
