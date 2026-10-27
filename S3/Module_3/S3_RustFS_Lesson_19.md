@@ -14,7 +14,6 @@ lesson: 19
 module: 3
 status: study
 ---
-
 # Урок 19. Потоковая передача: Streaming, Multipart и память
 
 > [!abstract] Цель урока

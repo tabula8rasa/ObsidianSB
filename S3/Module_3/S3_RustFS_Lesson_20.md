@@ -14,7 +14,6 @@ lesson: 20
 module: 3
 status: study
 ---
-
 # Урок 20. Ошибки S3, Retry, Timeout и конкурентная запись
 
 > [!abstract] Цель урока
