@@ -39,8 +39,16 @@ services:
     depends_on:
           vault:
             condition: service_healthy
-    
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     environment:
+      RUSTFS_NOTIFY_ENABLE: "true"
+      RUSTFS_NOTIFY_WEBHOOK_ENABLE_PRIMARY: "on"
+      RUSTFS_NOTIFY_WEBHOOK_ENDPOINT_PRIMARY: "http://host.docker.internal:8888/webhook"
+      RUSTFS_NOTIFY_WEBHOOK_AUTH_TOKEN_PRIMARY: "demo-secret"
+      RUSTFS_OUTBOUND_ALLOW_ORIGINS: "http://host.docker.internal:8888"
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?set in .env}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?set in .env}
       RUSTFS_VOLUMES: /data
