@@ -13,7 +13,6 @@ lesson: 24
 module: 4
 status: study
 ---
-
 # Урок 24. Физическая организация хранения RustFS
 
 > [!abstract] Цель урока

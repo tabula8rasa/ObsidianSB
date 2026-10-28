@@ -13,7 +13,6 @@ lesson: 26
 module: 4
 status: study
 ---
-
 # Урок 26. Кластер RustFS: узлы, сеть и диски
 
 > [!abstract] Цель урока
