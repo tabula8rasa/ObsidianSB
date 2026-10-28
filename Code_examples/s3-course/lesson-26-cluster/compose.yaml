@@ -1,0 +1,48 @@
+x-node-common: &node-common
+  image: rustfs/rustfs:latest
+  restart: unless-stopped
+  environment:
+    RUSTFS_VOLUMES: "http://node{1...4}:9000/data"
+    RUSTFS_ADDRESS: ":9000"
+    RUSTFS_CONSOLE_ADDRESS: ":9001"
+    RUSTFS_CONSOLE_ENABLE: "true"
+    RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?set in .env}
+    RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?set in .env}
+    RUSTFS_OBS_LOGGER_LEVEL: "info"
+    RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "true"
+
+services:
+  node1:
+    <<: *node-common
+    hostname: node1
+    ports:
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
+    volumes:
+      - node1_data:/data
+
+  node2:
+    <<: *node-common
+    hostname: node2
+    ports:
+      - "127.0.0.1:9102:9000"
+    volumes:
+      - node2_data:/data
+
+  node3:
+    <<: *node-common
+    hostname: node3
+    volumes:
+      - node3_data:/data
+
+  node4:
+    <<: *node-common
+    hostname: node4
+    volumes:
+      - node4_data:/data
+
+volumes:
+  node1_data:
+  node2_data:
+  node3_data:
+  node4_data:
