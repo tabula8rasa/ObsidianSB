@@ -32,9 +32,9 @@ status: study
 
 Для идеальной модели:
 
-\[
+$$\huge
 C_{\text{logical}}=C_{\text{raw}}\cdot\frac{K}{K+M}
-\]
+$$
 
 Пример: **4 независимых диска по 100 GiB**, схема `2+2`:
 
