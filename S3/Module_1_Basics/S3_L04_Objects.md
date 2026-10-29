@@ -6,7 +6,7 @@ lesson: 4
 module: 1
 status: study
 ---
-# Урок 04. Объекты: PUT, GET, HEAD, DELETE
+# Урок 04. Objects: PUT, GET, HEAD, DELETE
 
 **Цель:** освоить жизненный цикл объекта и различать операции над байтами и метаданными.
 
