@@ -12,7 +12,6 @@ lesson: 1
 module: 1
 status: study
 ---
-
 # Урок 01. Что такое S3 и как запустить RustFS локально
 
 > [!abstract] Цель урока
