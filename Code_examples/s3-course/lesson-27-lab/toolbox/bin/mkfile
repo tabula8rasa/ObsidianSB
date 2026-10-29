@@ -1,0 +1,6 @@
+#!/bin/sh
+# mkfile ИМЯ РАЗМЕР_МИБ — файл со случайным содержимым (в /work)
+set -e
+[ $# -eq 2 ] || { echo "usage: mkfile NAME SIZE_MIB" >&2; exit 2; }
+head -c "$(( $2 * 1024 * 1024 ))" /dev/urandom > "/work/$1"
+ls -l "/work/$1"

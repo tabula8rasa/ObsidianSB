@@ -1,0 +1,5 @@
+#!/bin/sh
+# Регистрирует в rc два алиаса: site-a и site-b (адреса — внутренние DNS-имена Docker-сети).
+set -e
+rc alias set site-a "http://a1-n1:9000" "$A_ACCESS_KEY" "$A_SECRET_KEY" --region us-east-1 --bucket-lookup path
+rc alias set site-b "http://b1-n1:9000" "$B_ACCESS_KEY" "$B_SECRET_KEY" --region us-east-1 --bucket-lookup path

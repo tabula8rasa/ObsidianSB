@@ -1,0 +1,4 @@
+#!/bin/sh
+# aws CLI к кластеру A. Точку входа можно сменить: ENTRY_A=a2-n7 s3a s3 ls
+export AWS_ACCESS_KEY_ID="$A_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$A_SECRET_KEY" AWS_DEFAULT_REGION=us-east-1
+exec aws --endpoint-url "http://${ENTRY_A:-a1-n1}:9000" "$@"

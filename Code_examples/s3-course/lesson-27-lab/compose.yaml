@@ -1,0 +1,1033 @@
+# СГЕНЕРИРОВАНО generate.py — не редактируй вручную, меняй параметры генератора.
+# 2 кластера x 2 pool x 3 erasure set x 8 endpoint = 96 контейнеров RustFS
+name: lesson27
+
+x-a-env: &a-env
+  RUSTFS_VOLUMES: "http://a1-n{1...24}:9000/data http://a2-n{1...24}:9000/data"
+  RUSTFS_ADDRESS: ":9000"
+  RUSTFS_CONSOLE_ADDRESS: ":9001"
+  RUSTFS_CONSOLE_ENABLE: "false"
+  RUSTFS_ACCESS_KEY: ${A_ACCESS_KEY:?set in .env}
+  RUSTFS_SECRET_KEY: ${A_SECRET_KEY:?set in .env}
+  RUSTFS_ERASURE_SET_DRIVE_COUNT: "8"
+  RUSTFS_OBS_LOGGER_LEVEL: "info"
+  RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "true"
+
+x-b-env: &b-env
+  RUSTFS_VOLUMES: "http://b1-n{1...24}:9000/data http://b2-n{1...24}:9000/data"
+  RUSTFS_ADDRESS: ":9000"
+  RUSTFS_CONSOLE_ADDRESS: ":9001"
+  RUSTFS_CONSOLE_ENABLE: "false"
+  RUSTFS_ACCESS_KEY: ${B_ACCESS_KEY:?set in .env}
+  RUSTFS_SECRET_KEY: ${B_SECRET_KEY:?set in .env}
+  RUSTFS_ERASURE_SET_DRIVE_COUNT: "8"
+  RUSTFS_OBS_LOGGER_LEVEL: "info"
+  RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "true"
+
+x-node: &node
+  image: rustfs/rustfs:latest
+  restart: unless-stopped
+  stop_grace_period: 5s
+
+services:
+  # ---- кластер A, pool 1: 24 endpoint-ов = 3 set x 8 ----
+  a1-n1:
+    <<: *node
+    hostname: a1-n1
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
+    volumes:
+      - a1-n1:/data
+  a1-n2:
+    <<: *node
+    hostname: a1-n2
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n2:/data
+  a1-n3:
+    <<: *node
+    hostname: a1-n3
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n3:/data
+  a1-n4:
+    <<: *node
+    hostname: a1-n4
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n4:/data
+  a1-n5:
+    <<: *node
+    hostname: a1-n5
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n5:/data
+  a1-n6:
+    <<: *node
+    hostname: a1-n6
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n6:/data
+  a1-n7:
+    <<: *node
+    hostname: a1-n7
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n7:/data
+  a1-n8:
+    <<: *node
+    hostname: a1-n8
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n8:/data
+  a1-n9:
+    <<: *node
+    hostname: a1-n9
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n9:/data
+  a1-n10:
+    <<: *node
+    hostname: a1-n10
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n10:/data
+  a1-n11:
+    <<: *node
+    hostname: a1-n11
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n11:/data
+  a1-n12:
+    <<: *node
+    hostname: a1-n12
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n12:/data
+  a1-n13:
+    <<: *node
+    hostname: a1-n13
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n13:/data
+  a1-n14:
+    <<: *node
+    hostname: a1-n14
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n14:/data
+  a1-n15:
+    <<: *node
+    hostname: a1-n15
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n15:/data
+  a1-n16:
+    <<: *node
+    hostname: a1-n16
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n16:/data
+  a1-n17:
+    <<: *node
+    hostname: a1-n17
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n17:/data
+  a1-n18:
+    <<: *node
+    hostname: a1-n18
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n18:/data
+  a1-n19:
+    <<: *node
+    hostname: a1-n19
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n19:/data
+  a1-n20:
+    <<: *node
+    hostname: a1-n20
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n20:/data
+  a1-n21:
+    <<: *node
+    hostname: a1-n21
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n21:/data
+  a1-n22:
+    <<: *node
+    hostname: a1-n22
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n22:/data
+  a1-n23:
+    <<: *node
+    hostname: a1-n23
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n23:/data
+  a1-n24:
+    <<: *node
+    hostname: a1-n24
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a1-n24:/data
+
+  # ---- кластер A, pool 2: 24 endpoint-ов = 3 set x 8 ----
+  a2-n1:
+    <<: *node
+    hostname: a2-n1
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "127.0.0.1:9110:9000"
+      - "127.0.0.1:9111:9001"
+    volumes:
+      - a2-n1:/data
+  a2-n2:
+    <<: *node
+    hostname: a2-n2
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n2:/data
+  a2-n3:
+    <<: *node
+    hostname: a2-n3
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n3:/data
+  a2-n4:
+    <<: *node
+    hostname: a2-n4
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n4:/data
+  a2-n5:
+    <<: *node
+    hostname: a2-n5
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n5:/data
+  a2-n6:
+    <<: *node
+    hostname: a2-n6
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n6:/data
+  a2-n7:
+    <<: *node
+    hostname: a2-n7
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n7:/data
+  a2-n8:
+    <<: *node
+    hostname: a2-n8
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n8:/data
+  a2-n9:
+    <<: *node
+    hostname: a2-n9
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n9:/data
+  a2-n10:
+    <<: *node
+    hostname: a2-n10
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n10:/data
+  a2-n11:
+    <<: *node
+    hostname: a2-n11
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n11:/data
+  a2-n12:
+    <<: *node
+    hostname: a2-n12
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n12:/data
+  a2-n13:
+    <<: *node
+    hostname: a2-n13
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n13:/data
+  a2-n14:
+    <<: *node
+    hostname: a2-n14
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n14:/data
+  a2-n15:
+    <<: *node
+    hostname: a2-n15
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n15:/data
+  a2-n16:
+    <<: *node
+    hostname: a2-n16
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n16:/data
+  a2-n17:
+    <<: *node
+    hostname: a2-n17
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n17:/data
+  a2-n18:
+    <<: *node
+    hostname: a2-n18
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n18:/data
+  a2-n19:
+    <<: *node
+    hostname: a2-n19
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n19:/data
+  a2-n20:
+    <<: *node
+    hostname: a2-n20
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n20:/data
+  a2-n21:
+    <<: *node
+    hostname: a2-n21
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n21:/data
+  a2-n22:
+    <<: *node
+    hostname: a2-n22
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n22:/data
+  a2-n23:
+    <<: *node
+    hostname: a2-n23
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n23:/data
+  a2-n24:
+    <<: *node
+    hostname: a2-n24
+    profiles: ["a"]
+    environment:
+      <<: *a-env
+    volumes:
+      - a2-n24:/data
+
+  # ---- кластер B, pool 1: 24 endpoint-ов = 3 set x 8 ----
+  b1-n1:
+    <<: *node
+    hostname: b1-n1
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "127.0.0.1:9200:9000"
+      - "127.0.0.1:9201:9001"
+    volumes:
+      - b1-n1:/data
+  b1-n2:
+    <<: *node
+    hostname: b1-n2
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n2:/data
+  b1-n3:
+    <<: *node
+    hostname: b1-n3
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n3:/data
+  b1-n4:
+    <<: *node
+    hostname: b1-n4
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n4:/data
+  b1-n5:
+    <<: *node
+    hostname: b1-n5
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n5:/data
+  b1-n6:
+    <<: *node
+    hostname: b1-n6
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n6:/data
+  b1-n7:
+    <<: *node
+    hostname: b1-n7
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n7:/data
+  b1-n8:
+    <<: *node
+    hostname: b1-n8
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n8:/data
+  b1-n9:
+    <<: *node
+    hostname: b1-n9
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n9:/data
+  b1-n10:
+    <<: *node
+    hostname: b1-n10
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n10:/data
+  b1-n11:
+    <<: *node
+    hostname: b1-n11
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n11:/data
+  b1-n12:
+    <<: *node
+    hostname: b1-n12
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n12:/data
+  b1-n13:
+    <<: *node
+    hostname: b1-n13
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n13:/data
+  b1-n14:
+    <<: *node
+    hostname: b1-n14
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n14:/data
+  b1-n15:
+    <<: *node
+    hostname: b1-n15
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n15:/data
+  b1-n16:
+    <<: *node
+    hostname: b1-n16
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n16:/data
+  b1-n17:
+    <<: *node
+    hostname: b1-n17
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n17:/data
+  b1-n18:
+    <<: *node
+    hostname: b1-n18
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n18:/data
+  b1-n19:
+    <<: *node
+    hostname: b1-n19
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n19:/data
+  b1-n20:
+    <<: *node
+    hostname: b1-n20
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n20:/data
+  b1-n21:
+    <<: *node
+    hostname: b1-n21
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n21:/data
+  b1-n22:
+    <<: *node
+    hostname: b1-n22
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n22:/data
+  b1-n23:
+    <<: *node
+    hostname: b1-n23
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n23:/data
+  b1-n24:
+    <<: *node
+    hostname: b1-n24
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b1-n24:/data
+
+  # ---- кластер B, pool 2: 24 endpoint-ов = 3 set x 8 ----
+  b2-n1:
+    <<: *node
+    hostname: b2-n1
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "127.0.0.1:9210:9000"
+      - "127.0.0.1:9211:9001"
+    volumes:
+      - b2-n1:/data
+  b2-n2:
+    <<: *node
+    hostname: b2-n2
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n2:/data
+  b2-n3:
+    <<: *node
+    hostname: b2-n3
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n3:/data
+  b2-n4:
+    <<: *node
+    hostname: b2-n4
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n4:/data
+  b2-n5:
+    <<: *node
+    hostname: b2-n5
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n5:/data
+  b2-n6:
+    <<: *node
+    hostname: b2-n6
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n6:/data
+  b2-n7:
+    <<: *node
+    hostname: b2-n7
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n7:/data
+  b2-n8:
+    <<: *node
+    hostname: b2-n8
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n8:/data
+  b2-n9:
+    <<: *node
+    hostname: b2-n9
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n9:/data
+  b2-n10:
+    <<: *node
+    hostname: b2-n10
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n10:/data
+  b2-n11:
+    <<: *node
+    hostname: b2-n11
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n11:/data
+  b2-n12:
+    <<: *node
+    hostname: b2-n12
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n12:/data
+  b2-n13:
+    <<: *node
+    hostname: b2-n13
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n13:/data
+  b2-n14:
+    <<: *node
+    hostname: b2-n14
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n14:/data
+  b2-n15:
+    <<: *node
+    hostname: b2-n15
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n15:/data
+  b2-n16:
+    <<: *node
+    hostname: b2-n16
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n16:/data
+  b2-n17:
+    <<: *node
+    hostname: b2-n17
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n17:/data
+  b2-n18:
+    <<: *node
+    hostname: b2-n18
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n18:/data
+  b2-n19:
+    <<: *node
+    hostname: b2-n19
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n19:/data
+  b2-n20:
+    <<: *node
+    hostname: b2-n20
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n20:/data
+  b2-n21:
+    <<: *node
+    hostname: b2-n21
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n21:/data
+  b2-n22:
+    <<: *node
+    hostname: b2-n22
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n22:/data
+  b2-n23:
+    <<: *node
+    hostname: b2-n23
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n23:/data
+  b2-n24:
+    <<: *node
+    hostname: b2-n24
+    profiles: ["b"]
+    environment:
+      <<: *b-env
+    volumes:
+      - b2-n24:/data
+
+  tools:
+    build: ./toolbox
+    image: rustfs-lab-tools:27
+    hostname: tools
+    init: true
+    command: ["sleep", "infinity"]
+    environment:
+      A_ACCESS_KEY: ${A_ACCESS_KEY:?set in .env}
+      A_SECRET_KEY: ${A_SECRET_KEY:?set in .env}
+      B_ACCESS_KEY: ${B_ACCESS_KEY:?set in .env}
+      B_SECRET_KEY: ${B_SECRET_KEY:?set in .env}
+      LAB_ROOT: /v
+      LAB_DRIVES: "8"
+    volumes:
+      - ./toolbox/py:/lab:ro
+      - a1-n1:/v/a1-n1:ro
+      - a1-n2:/v/a1-n2:ro
+      - a1-n3:/v/a1-n3:ro
+      - a1-n4:/v/a1-n4:ro
+      - a1-n5:/v/a1-n5:ro
+      - a1-n6:/v/a1-n6:ro
+      - a1-n7:/v/a1-n7:ro
+      - a1-n8:/v/a1-n8:ro
+      - a1-n9:/v/a1-n9:ro
+      - a1-n10:/v/a1-n10:ro
+      - a1-n11:/v/a1-n11:ro
+      - a1-n12:/v/a1-n12:ro
+      - a1-n13:/v/a1-n13:ro
+      - a1-n14:/v/a1-n14:ro
+      - a1-n15:/v/a1-n15:ro
+      - a1-n16:/v/a1-n16:ro
+      - a1-n17:/v/a1-n17:ro
+      - a1-n18:/v/a1-n18:ro
+      - a1-n19:/v/a1-n19:ro
+      - a1-n20:/v/a1-n20:ro
+      - a1-n21:/v/a1-n21:ro
+      - a1-n22:/v/a1-n22:ro
+      - a1-n23:/v/a1-n23:ro
+      - a1-n24:/v/a1-n24:ro
+      - a2-n1:/v/a2-n1:ro
+      - a2-n2:/v/a2-n2:ro
+      - a2-n3:/v/a2-n3:ro
+      - a2-n4:/v/a2-n4:ro
+      - a2-n5:/v/a2-n5:ro
+      - a2-n6:/v/a2-n6:ro
+      - a2-n7:/v/a2-n7:ro
+      - a2-n8:/v/a2-n8:ro
+      - a2-n9:/v/a2-n9:ro
+      - a2-n10:/v/a2-n10:ro
+      - a2-n11:/v/a2-n11:ro
+      - a2-n12:/v/a2-n12:ro
+      - a2-n13:/v/a2-n13:ro
+      - a2-n14:/v/a2-n14:ro
+      - a2-n15:/v/a2-n15:ro
+      - a2-n16:/v/a2-n16:ro
+      - a2-n17:/v/a2-n17:ro
+      - a2-n18:/v/a2-n18:ro
+      - a2-n19:/v/a2-n19:ro
+      - a2-n20:/v/a2-n20:ro
+      - a2-n21:/v/a2-n21:ro
+      - a2-n22:/v/a2-n22:ro
+      - a2-n23:/v/a2-n23:ro
+      - a2-n24:/v/a2-n24:ro
+      - b1-n1:/v/b1-n1:ro
+      - b1-n2:/v/b1-n2:ro
+      - b1-n3:/v/b1-n3:ro
+      - b1-n4:/v/b1-n4:ro
+      - b1-n5:/v/b1-n5:ro
+      - b1-n6:/v/b1-n6:ro
+      - b1-n7:/v/b1-n7:ro
+      - b1-n8:/v/b1-n8:ro
+      - b1-n9:/v/b1-n9:ro
+      - b1-n10:/v/b1-n10:ro
+      - b1-n11:/v/b1-n11:ro
+      - b1-n12:/v/b1-n12:ro
+      - b1-n13:/v/b1-n13:ro
+      - b1-n14:/v/b1-n14:ro
+      - b1-n15:/v/b1-n15:ro
+      - b1-n16:/v/b1-n16:ro
+      - b1-n17:/v/b1-n17:ro
+      - b1-n18:/v/b1-n18:ro
+      - b1-n19:/v/b1-n19:ro
+      - b1-n20:/v/b1-n20:ro
+      - b1-n21:/v/b1-n21:ro
+      - b1-n22:/v/b1-n22:ro
+      - b1-n23:/v/b1-n23:ro
+      - b1-n24:/v/b1-n24:ro
+      - b2-n1:/v/b2-n1:ro
+      - b2-n2:/v/b2-n2:ro
+      - b2-n3:/v/b2-n3:ro
+      - b2-n4:/v/b2-n4:ro
+      - b2-n5:/v/b2-n5:ro
+      - b2-n6:/v/b2-n6:ro
+      - b2-n7:/v/b2-n7:ro
+      - b2-n8:/v/b2-n8:ro
+      - b2-n9:/v/b2-n9:ro
+      - b2-n10:/v/b2-n10:ro
+      - b2-n11:/v/b2-n11:ro
+      - b2-n12:/v/b2-n12:ro
+      - b2-n13:/v/b2-n13:ro
+      - b2-n14:/v/b2-n14:ro
+      - b2-n15:/v/b2-n15:ro
+      - b2-n16:/v/b2-n16:ro
+      - b2-n17:/v/b2-n17:ro
+      - b2-n18:/v/b2-n18:ro
+      - b2-n19:/v/b2-n19:ro
+      - b2-n20:/v/b2-n20:ro
+      - b2-n21:/v/b2-n21:ro
+      - b2-n22:/v/b2-n22:ro
+      - b2-n23:/v/b2-n23:ro
+      - b2-n24:/v/b2-n24:ro
+
+volumes:
+  a1-n1:
+  a1-n2:
+  a1-n3:
+  a1-n4:
+  a1-n5:
+  a1-n6:
+  a1-n7:
+  a1-n8:
+  a1-n9:
+  a1-n10:
+  a1-n11:
+  a1-n12:
+  a1-n13:
+  a1-n14:
+  a1-n15:
+  a1-n16:
+  a1-n17:
+  a1-n18:
+  a1-n19:
+  a1-n20:
+  a1-n21:
+  a1-n22:
+  a1-n23:
+  a1-n24:
+  a2-n1:
+  a2-n2:
+  a2-n3:
+  a2-n4:
+  a2-n5:
+  a2-n6:
+  a2-n7:
+  a2-n8:
+  a2-n9:
+  a2-n10:
+  a2-n11:
+  a2-n12:
+  a2-n13:
+  a2-n14:
+  a2-n15:
+  a2-n16:
+  a2-n17:
+  a2-n18:
+  a2-n19:
+  a2-n20:
+  a2-n21:
+  a2-n22:
+  a2-n23:
+  a2-n24:
+  b1-n1:
+  b1-n2:
+  b1-n3:
+  b1-n4:
+  b1-n5:
+  b1-n6:
+  b1-n7:
+  b1-n8:
+  b1-n9:
+  b1-n10:
+  b1-n11:
+  b1-n12:
+  b1-n13:
+  b1-n14:
+  b1-n15:
+  b1-n16:
+  b1-n17:
+  b1-n18:
+  b1-n19:
+  b1-n20:
+  b1-n21:
+  b1-n22:
+  b1-n23:
+  b1-n24:
+  b2-n1:
+  b2-n2:
+  b2-n3:
+  b2-n4:
+  b2-n5:
+  b2-n6:
+  b2-n7:
+  b2-n8:
+  b2-n9:
+  b2-n10:
+  b2-n11:
+  b2-n12:
+  b2-n13:
+  b2-n14:
+  b2-n15:
+  b2-n16:
+  b2-n17:
+  b2-n18:
+  b2-n19:
+  b2-n20:
+  b2-n21:
+  b2-n22:
+  b2-n23:
+  b2-n24:
