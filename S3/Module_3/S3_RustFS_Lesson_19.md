@@ -59,7 +59,7 @@ status: study
 
 Используй виртуальное окружение урока 18 либо установи `boto3`. Создай тестовый файл без формирования 32 MiB в Python-памяти:
 
-```fish
+```bash
 mkdir -p ~/s3-course/lesson-19
 cd ~/s3-course/lesson-19
 truncate -s 32M big.bin
@@ -107,7 +107,7 @@ print("Downloaded:", Path("copy.bin").stat().st_size)
 
 Запуск и проверка:
 
-```fish
+```bash
 python lesson19.py
 sha256sum big.bin copy.bin
 cmp big.bin copy.bin

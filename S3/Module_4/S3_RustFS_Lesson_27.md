@@ -59,7 +59,7 @@ flowchart TB
 
 Создай **новый** каталог, не меняя лабораторию урока 26:
 
-```fish
+```bash
 mkdir -p ~/s3-course/lesson-27-replication
 cd ~/s3-course/lesson-27-replication
 
@@ -106,7 +106,7 @@ volumes:
   target_data:
 ```
 
-```fish
+```bash
 docker compose config -q
 docker compose up -d
 docker compose ps
@@ -117,7 +117,7 @@ curl -i http://127.0.0.1:9300/health/ready
 
 Для AWS CLI установи реквизиты этого проекта **в текущем терминале fish**:
 
-```fish
+```bash
 set -gx AWS_ACCESS_KEY_ID (string replace 'RUSTFS_ACCESS_KEY=' '' \
     (grep '^RUSTFS_ACCESS_KEY=' .env))
 set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
@@ -126,7 +126,7 @@ set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
 
 ## 4. Создаём два версионируемых бакета
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9200 --region us-east-1 \
     s3api create-bucket --bucket s3-course-repl27-src
 aws --endpoint-url http://127.0.0.1:9300 --region us-east-1 \
@@ -158,7 +158,7 @@ aws --endpoint-url http://127.0.0.1:9300 \
 
 ## 6. Проверка: новая версия и независимое чтение
 
-```fish
+```bash
 printf 'replication lesson 27 v1\n' > repl27.txt
 aws --endpoint-url http://127.0.0.1:9200 \
     s3api put-object --bucket s3-course-repl27-src \
@@ -167,7 +167,7 @@ aws --endpoint-url http://127.0.0.1:9200 \
 
 Проверь объект у получателя; если его пока нет, сначала проверь состояние правила — передача асинхронна:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9300 \
     s3api head-object --bucket s3-course-repl27-dst --key lab/demo.txt
 aws --endpoint-url http://127.0.0.1:9300 \
@@ -178,7 +178,7 @@ cmp repl27.txt received27.txt
 
 Затем обнови объект, проверь **две версии** и скачай текущую целевую версию:
 
-```fish
+```bash
 printf 'replication lesson 27 v2\n' > repl27.txt
 aws --endpoint-url http://127.0.0.1:9200 \
     s3api put-object --bucket s3-course-repl27-src \
@@ -192,7 +192,7 @@ aws --endpoint-url http://127.0.0.1:9300 \
 
 После подтверждения доставки новой версии:
 
-```fish
+```bash
 docker compose stop source
 aws --endpoint-url http://127.0.0.1:9300 \
     s3api get-object --bucket s3-course-repl27-dst \

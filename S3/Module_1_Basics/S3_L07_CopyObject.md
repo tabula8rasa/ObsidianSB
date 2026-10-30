@@ -31,7 +31,7 @@ status: study
 
 ## Практика
 
-```fish
+```bash
 printf 'Lesson 07\n' > lesson07.txt
 s3 s3api put-object --bucket s3-course-lesson1 \
   --key lesson07/source.txt --body lesson07.txt
@@ -45,7 +45,7 @@ s3 s3api delete-object --bucket s3-course-lesson1 \
 
 Создай `lesson07/temporary.txt` и удали оба оставшихся тестовых ключа одним запросом:
 
-```fish
+```bash
 s3 s3api put-object --bucket s3-course-lesson1 \
   --key lesson07/temporary.txt --body lesson07.txt
 s3 s3api delete-objects --bucket s3-course-lesson1 \

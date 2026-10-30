@@ -87,7 +87,7 @@ HTTPServer(('0.0.0.0', 8080), Receiver).serve_forever()
 
 Запусти получателя, затем пересоздай RustFS без удаления томов:
 
-```fish
+```bash
 docker compose up -d receiver
 docker compose up -d rustfs
 ```
@@ -100,7 +100,7 @@ docker compose up -d rustfs
 
 Примени правило и загрузи небольшой файл:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 s3api put-bucket-notification-configuration --bucket s3-course-events --notification-configuration file://notification.json
 printf 'event test\n' > event.txt
 aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 s3 cp event.txt s3://s3-course-events/incoming/event.txt

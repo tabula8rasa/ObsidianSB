@@ -92,7 +92,7 @@ flowchart LR
 
 Распакуй архив лаборатории и перейди в каталог. В `fish`:
 
-```fish
+```bash
 mkdir -p ~/s3-course
 unzip lesson-27-lab.zip -d ~/s3-course
 cd ~/s3-course/lesson-27-lab
@@ -114,7 +114,7 @@ lesson-27-lab/
 
 Ключи двух кластеров **разные** (это независимые системы). Файл `.env` содержит секреты, не добавляй его в Git:
 
-```fish
+```bash
 printf 'A_ACCESS_KEY=lab%s\nA_SECRET_KEY=%s\nB_ACCESS_KEY=lab%s\nB_SECRET_KEY=%s\n' \
     (openssl rand -hex 8) (openssl rand -hex 24) \
     (openssl rand -hex 8) (openssl rand -hex 24) > .env
@@ -123,7 +123,7 @@ chmod 600 .env
 
 Сгенерируй и проверь compose, затем собери образ `tools`:
 
-```fish
+```bash
 python3 generate.py
 docker compose config -q
 docker compose build tools
@@ -140,14 +140,14 @@ docker compose build tools
 
 Профиль `a` запускает только кластер A (48 контейнеров). Кластер B включим позже, чтобы не нагружать машину раньше времени.
 
-```fish
+```bash
 docker compose --profile a up -d
 docker compose --profile a ps | wc -l
 ```
 
 Узлы стартуют не мгновенно: им нужно найти друг друга. Дождись готовности (команда сама повторяется, пока все 48 не ответят на `/health/ready`):
 
-```fish
+```bash
 while not docker compose exec tools labmap ready a
     sleep 5
 end
@@ -162,13 +162,13 @@ OK  кластер A pool 2: готово 24/24
 
 Сколько памяти занял кластер:
 
-```fish
+```bash
 docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | head -5
 ```
 
 Если узлы долго не готовы, смотри логи одного узла и раздел 10:
 
-```fish
+```bash
 docker compose logs --tail=40 a1-n1
 ```
 
@@ -176,7 +176,7 @@ docker compose logs --tail=40 a1-n1
 
 Адрес: **http://127.0.0.1:9101** (консоль узла `a1-n1`). Резервная консоль: **http://127.0.0.1:9111** (узел `a2-n1`, пригодится, когда мы будем гасить узлы). Логин и пароль берём из `.env`:
 
-```fish
+```bash
 grep '^A_' .env
 ```
 
@@ -187,7 +187,7 @@ grep '^A_' .env
 
 ### Алиасы `rc` и административная информация
 
-```fish
+```bash
 docker compose exec tools lab-aliases
 docker compose exec tools rc admin info cluster site-a
 docker compose exec tools rc admin pool list site-a
@@ -211,7 +211,7 @@ docker compose exec tools rc admin pool list site-a
 
 Создаём бакет и объект 4 MiB со случайным содержимым через узел `a1-n1`:
 
-```fish
+```bash
 docker compose exec tools s3a s3api create-bucket --bucket lab
 docker compose exec tools mkfile big1.bin 4
 docker compose exec tools s3a s3api put-object --bucket lab --key demo/big1.bin --body /work/big1.bin
@@ -228,7 +228,7 @@ docker compose exec tools labmap where a lab demo/big1.bin --size 4194304
 
 Теперь прочитай объект через **другой** узел и сравни байты (урок 26, только на другом масштабе):
 
-```fish
+```bash
 docker compose exec -e ENTRY_A=a2-n9 tools s3a s3api get-object --bucket lab --key demo/big1.bin /work/got.bin
 docker compose exec tools cmp /work/big1.bin /work/got.bin
 ```
@@ -237,7 +237,7 @@ docker compose exec tools cmp /work/big1.bin /work/got.bin
 
 Загружаем 40 объектов по 1 MiB под разными ключами:
 
-```fish
+```bash
 docker compose exec tools sh -c 'mkfile one.bin 1 >/dev/null; for i in $(seq 1 40); do s3a s3api put-object --bucket lab --key spread/obj-$i.bin --body /work/one.bin >/dev/null; done; echo готово'
 docker compose exec tools labmap map a lab --keys 2
 ```
@@ -300,14 +300,14 @@ docker compose exec tools labmap map a lab --keys 2
 
 Узнай, какие endpoint-ы держат `demo/big1.bin`, и возьми три из них (подставь **свои** имена из вывода `where`; ниже они для примера):
 
-```fish
+```bash
 docker compose exec tools labmap where a lab demo/big1.bin
 docker compose --profile a stop a1-n3 a1-n9 a1-n14
 ```
 
 Читаем объект, выбрав точку входа **вне** остановленных узлов:
 
-```fish
+```bash
 docker compose exec -e ENTRY_A=a2-n9 tools s3a s3api get-object --bucket lab --key demo/big1.bin /work/got2.bin
 docker compose exec tools cmp /work/big1.bin /work/got2.bin
 ```
@@ -318,7 +318,7 @@ docker compose exec tools cmp /work/big1.bin /work/got2.bin
 
 Скрипт определит set объекта по расположению shards, затем по одному гасит его узлы. После каждого шага он читает известный объект и пишет 60 новых. В конце он сам поднимает всё обратно.
 
-```fish
+```bash
 python3 quorum_demo.py --cluster a --bucket lab --key demo/big1.bin --size 4194304
 ```
 
@@ -353,7 +353,7 @@ python3 quorum_demo.py --cluster a --bucket lab --key demo/big1.bin --size 41943
 
 Очистка опытных данных:
 
-```fish
+```bash
 docker compose exec tools s3a s3 rm s3://lab/ --recursive --exclude "demo/*" --exclude "spread/*" --exclude "console/*"
 ```
 
@@ -363,7 +363,7 @@ docker compose exec tools s3a s3 rm s3://lab/ --recursive --exclude "demo/*" --e
 
 ### 7.1. Запуск site B
 
-```fish
+```bash
 docker compose --profile b up -d
 while not docker compose exec tools labmap ready b
     sleep 5
@@ -376,7 +376,7 @@ Console site B: **http://127.0.0.1:9201** (резервная: **9211**). Клю
 
 Документация рекомендует первую связку делать на **пустых** сайтах. Убери бакет опытов с A:
 
-```fish
+```bash
 docker compose exec tools s3a s3 rb s3://lab --force
 docker compose exec tools s3b s3 ls
 ```
@@ -387,7 +387,7 @@ docker compose exec tools s3b s3 ls
 
 Сайты видят друг друга по DNS внутри Docker-сети, поэтому адреса `http://a1-n1:9000` и `http://b1-n1:9000` доступны обоим. Это не loopback, поэтому флаг `RUSTFS_REPLICATION_ALLOW_LOOPBACK_TARGET` **не нужен** (его нельзя включать в продакшене).
 
-```fish
+```bash
 docker compose exec tools lab-aliases
 docker compose exec tools rc ready site-a
 docker compose exec tools rc ready site-b
@@ -404,7 +404,7 @@ docker compose exec tools rc admin replicate status site-a
 
 ### 7.4. Бакет, объект и метаданные расходятся сами
 
-```fish
+```bash
 docker compose exec tools s3a s3api create-bucket --bucket shared
 docker compose exec tools s3b s3api list-buckets
 docker compose exec tools s3a s3api get-bucket-versioning --bucket shared
@@ -414,7 +414,7 @@ docker compose exec tools s3a s3api put-object --bucket shared --key rep/rep1.bi
 
 Репликация **асинхронная**, поэтому дай ей несколько секунд и проверь на B:
 
-```fish
+```bash
 sleep 10
 docker compose exec tools s3b s3api head-object --bucket shared --key rep/rep1.bin
 docker compose exec tools s3b s3api get-object --bucket shared --key rep/rep1.bin /work/rep1.fromB.bin
@@ -429,7 +429,7 @@ docker compose exec tools rc admin replicate status site-a --metrics
 
 Это главное наблюдение урока: репликация копирует **объект**, а не shards. У каждого кластера собственная раскладка.
 
-```fish
+```bash
 docker compose exec tools labmap where a shared rep/rep1.bin --size 4194304
 docker compose exec tools labmap where b shared rep/rep1.bin --size 4194304
 ```
@@ -438,7 +438,7 @@ docker compose exec tools labmap where b shared rep/rep1.bin --size 4194304
 
 Теперь в обратную сторону: запись в **B** должна появиться в **A**.
 
-```fish
+```bash
 docker compose exec tools s3b s3api put-object --bucket shared --key rep/from-b.bin --body /work/rep1.bin
 sleep 10
 docker compose exec tools s3a s3api head-object --bucket shared --key rep/from-b.bin
@@ -458,7 +458,7 @@ docker compose exec tools s3a s3api head-object --bucket shared --key rep/from-b
 
 Сайт B пропадает целиком (авария площадки). Репликация асинхронная: запись в A должна продолжать работать.
 
-```fish
+```bash
 docker compose --profile b stop
 docker compose exec tools s3a s3api put-object --bucket shared --key rep/while-b-down-1.bin --body /work/rep1.bin
 docker compose exec tools s3a s3api put-object --bucket shared --key rep/while-b-down-2.bin --body /work/rep1.bin
@@ -467,7 +467,7 @@ docker compose exec tools rc admin replicate status site-a --metrics
 
 Затем верни B и проследи за догоняющей репликацией:
 
-```fish
+```bash
 docker compose --profile b start
 while not docker compose exec tools labmap ready b
     sleep 5
@@ -478,7 +478,7 @@ docker compose exec tools s3b s3api list-objects-v2 --bucket shared --prefix rep
 
 Если после ожидания объектов `while-b-down-*` на B всё ещё нет, запусти ресинхронизацию. Идентификатор берётся из `rc admin replicate info site-a`:
 
-```fish
+```bash
 docker compose exec tools rc admin replicate resync start site-a --site <deployment-id-сайта-B> --yes
 docker compose exec tools rc admin replicate resync status site-a --site <deployment-id-сайта-B>
 ```
@@ -528,13 +528,13 @@ Site replication синхронизирует и IAM. Синтаксис ком�
 
 **Остановка с сохранением данных:**
 
-```fish
+```bash
 docker compose --profile a --profile b stop
 ```
 
 **Полная очистка стенда вместе с томами** (все 96 учебных томов будут удалены):
 
-```fish
+```bash
 docker compose --profile a --profile b down -v
 ```
 

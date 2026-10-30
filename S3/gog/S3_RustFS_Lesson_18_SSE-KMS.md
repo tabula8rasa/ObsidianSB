@@ -88,7 +88,7 @@ services:
 
 Здесь показан фрагмент, который нужно **объединить с уже существующим `services.rustfs`**, не заменяя его. Выполни:
 
-```fish
+```bash
 docker compose up -d vault
 docker compose exec vault vault status
 docker compose exec vault vault secrets enable transit
@@ -127,7 +127,7 @@ RUSTFS_KMS_ALLOW_INSECURE_DEV_DEFAULTS: "true"
 
 После состояния KMS **healthy** создай бакет `lesson18` и загрузи файл:
 
-```fish
+```bash
 printf 'KMS test\n' > kms.txt
 set EP http://127.0.0.1:9000
 aws --endpoint-url $EP s3api put-object \

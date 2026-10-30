@@ -53,7 +53,7 @@ status: study
 
 Выполняй в каталоге лаборатории, где находится `tls/rustfs_cert.pem` из урока 16:
 
-```fish
+```bash
 openssl rand -out sse-c.key 32
 chmod 600 sse-c.key
 printf 'SSE-C private object\n' > sse-c.txt
@@ -68,7 +68,7 @@ set EP https://127.0.0.1:9000
 
 **Загрузка:**
 
-```fish
+```bash
 aws --ca-bundle tls/rustfs_cert.pem --endpoint-url $EP \
   s3api put-object --bucket lesson19 --key protected.txt \
   --body sse-c.txt --sse-customer-algorithm AES256 \
@@ -77,14 +77,14 @@ aws --ca-bundle tls/rustfs_cert.pem --endpoint-url $EP \
 
 **Чтение без ключа** (должно завершиться отказом):
 
-```fish
+```bash
 aws --ca-bundle tls/rustfs_cert.pem --endpoint-url $EP \
   s3api get-object --bucket lesson19 --key protected.txt no-key.txt
 ```
 
 **Чтение с исходным ключом:**
 
-```fish
+```bash
 aws --ca-bundle tls/rustfs_cert.pem --endpoint-url $EP \
   s3api get-object --bucket lesson19 --key protected.txt \
   --sse-customer-algorithm AES256 \

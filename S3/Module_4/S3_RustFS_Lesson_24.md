@@ -81,7 +81,7 @@ flowchart TB
 
 В каталоге `compose.yaml`:
 
-```fish
+```bash
 docker compose ps
 
 docker inspect (docker compose ps -q rustfs) \
@@ -90,7 +90,7 @@ docker inspect (docker compose ps -q rustfs) \
 
 Для базовой лаборатории путь назначения — `/data`, тип — `volume`. Найди имя тома именно у работающего контейнера:
 
-```fish
+```bash
 set VOL (docker inspect (docker compose ps -q rustfs) \
     --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}')
 
@@ -103,7 +103,7 @@ echo $VOL
 
 **Для named volume** из предыдущего шага запусти отдельный временный контейнер с правом `readonly`:
 
-```fish
+```bash
 docker run --rm --network none \
     --mount "type=volume,source=$VOL,target=/mnt/store,readonly" \
     alpine:3.20 \
@@ -112,7 +112,7 @@ docker run --rm --network none \
 
 Найти метаданные (при наличии объектов в выбранном томе):
 
-```fish
+```bash
 docker run --rm --network none \
     --mount "type=volume,source=$VOL,target=/mnt/store,readonly" \
     alpine:3.20 \
@@ -121,7 +121,7 @@ docker run --rm --network none \
 
 Параллельно сравни логическое представление через API:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \
     s3api list-objects-v2 --bucket s3-course-lesson1 --prefix arch/
 ```

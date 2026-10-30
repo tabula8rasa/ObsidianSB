@@ -89,7 +89,7 @@ flowchart LR
 
 Работаем **на исправном кластере урока 26**. Не используй стенд репликации урока 27:
 
-```fish
+```bash
 cd ~/s3-course/lesson-26-cluster
 docker compose ps
 curl -i http://127.0.0.1:9100/health/ready
@@ -97,7 +97,7 @@ curl -i http://127.0.0.1:9100/health/ready
 
 Установи реквизиты этого кластера для `boto3` и AWS CLI:
 
-```fish
+```bash
 set -gx AWS_ACCESS_KEY_ID (string replace 'RUSTFS_ACCESS_KEY=' '' \
     (grep '^RUSTFS_ACCESS_KEY=' .env))
 set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
@@ -197,7 +197,7 @@ run_phase("GET", get_one)
 
 Запусти четыре **отдельных прогона**:
 
-```fish
+```bash
 # Маленькие объекты: IOPS, накладные расходы на запрос
 python bench29.py --count 64 --size-kib 16 --workers 1
 python bench29.py --count 64 --size-kib 16 --workers 4
@@ -216,7 +216,7 @@ python bench29.py --count 24 --size-kib 1024 --workers 4
 
 В **другом терминале**, в каталоге стенда:
 
-```fish
+```bash
 docker compose ps
 docker stats --no-stream
 docker compose logs --tail=50 node1 node2 node3 node4
@@ -227,7 +227,7 @@ lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS
 
 Для дополнительной диагностики хоста при наличии утилит:
 
-```fish
+```bash
 # iostat входит в пакет sysstat
 iostat -xz 1 3
 # Просмотр основных процессов
@@ -248,7 +248,7 @@ htop
 
 **Проверки здоровья:**
 
-```fish
+```bash
 curl -i http://127.0.0.1:9100/health
 curl -i http://127.0.0.1:9100/health/ready
 ```

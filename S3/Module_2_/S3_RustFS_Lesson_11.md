@@ -65,13 +65,13 @@ status: study
 3. Удали объект обычным способом, без выбора отдельной версии.
 4. Посмотри историю через CLI:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 s3api list-object-versions --bucket s3-course-lesson11 --prefix report.txt
 ```
 
 Выбери маркер именно ключа `report.txt` с `IsLatest: true`. Убедись, что обычное скачивание больше не работает, а старая версия доступна. Затем замени `MARKER_ID` его настоящим идентификатором:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 s3api delete-object --bucket s3-course-lesson11 --key report.txt --version-id 'MARKER_ID'
 ```
 

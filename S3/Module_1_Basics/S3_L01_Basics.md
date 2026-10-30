@@ -31,7 +31,7 @@ status: study
 
 Рабочий каталог и локальные учётные данные (терминал `fish`):
 
-```fish
+```bash
 mkdir -p ~/s3-course/lesson-01
 cd ~/s3-course/lesson-01
 printf 'RUSTFS_ACCESS_KEY=lab%s\nRUSTFS_SECRET_KEY=%s\n' \
@@ -61,7 +61,7 @@ volumes:
   rustfs-data:
 ```
 
-```fish
+```bash
 docker compose up -d
 curl -i http://127.0.0.1:9000/health
 printf 'Hello, object storage!\n' > hello.txt

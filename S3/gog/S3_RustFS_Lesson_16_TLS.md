@@ -60,7 +60,7 @@ TLS защищает канал **до точки завершения TLS**. Е
 
 Перейди в каталог с `compose.yaml` из урока 1 и выполни:
 
-```fish
+```bash
 mkdir -p tls
 openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 7 \
   -keyout tls/rustfs_key.pem -out tls/rustfs_cert.pem \
@@ -83,7 +83,7 @@ volumes:
 
 Примени конфигурацию:
 
-```fish
+```bash
 docker compose config -q
 docker compose up -d
 ```
@@ -92,7 +92,7 @@ docker compose up -d
 
 ## 5. Проверяем в `curl` и Firefox
 
-```fish
+```bash
 curl --cacert tls/rustfs_cert.pem -i https://127.0.0.1:9000/health
 curl --cacert tls/rustfs_cert.pem -i https://127.0.0.1:9001/
 ```

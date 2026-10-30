@@ -482,7 +482,7 @@ flowchart TB
 
 Перейди в каталог, где расположен файл `compose.yaml`, затем выполни:
 
-```fish
+```bash
 docker compose ps
 ```
 
@@ -490,7 +490,7 @@ docker compose ps
 
 ### 9.2. Подготовь два объекта разного размера
 
-```fish
+```bash
 printf 'Hello from lesson 24!\n' > lesson24-small.txt
 
 dd if=/dev/urandom of=lesson24-large.bin bs=1M count=8 status=none
@@ -503,7 +503,7 @@ dd if=/dev/urandom of=lesson24-large.bin bs=1M count=8 status=none
 
 Загрузи оба файла в существующий учебный бакет:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \
     s3api put-object \
     --bucket s3-course-lesson1 \
@@ -521,7 +521,7 @@ aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \
 
 Проверь логический вид через S3 API:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \
     s3api list-objects-v2 \
     --bucket s3-course-lesson1 \
@@ -534,7 +534,7 @@ aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \
 
 ### 9.3. Найди путь к данным контейнера
 
-```fish
+```bash
 set CID (docker compose ps -q rustfs)
 
 docker inspect $CID \
@@ -564,7 +564,7 @@ volume  s3course_rustfs-data  /var/lib/docker/volumes/.../_data  /data
 
 Для случая **named volume**, монтированного в `/data`:
 
-```fish
+```bash
 set VOL (docker inspect $CID \
     --format '{{range .Mounts}}{{if and (eq .Destination "/data") (eq .Type "volume")}}{{.Name}}{{end}}{{end}}')
 
@@ -575,7 +575,7 @@ echo $VOL
 
 Показать первые найденные файлы:
 
-```fish
+```bash
 docker run --rm --network none \
     --mount "type=volume,source=$VOL,target=/read,readonly" \
     alpine:3.20 \
@@ -584,7 +584,7 @@ docker run --rm --network none \
 
 Найти метаданные:
 
-```fish
+```bash
 docker run --rm --network none \
     --mount "type=volume,source=$VOL,target=/read,readonly" \
     alpine:3.20 \
@@ -593,7 +593,7 @@ docker run --rm --network none \
 
 Найти отдельные файлы частей (если они есть):
 
-```fish
+```bash
 docker run --rm --network none \
     --mount "type=volume,source=$VOL,target=/read,readonly" \
     alpine:3.20 \
@@ -606,7 +606,7 @@ docker run --rm --network none \
 
 ### 9.5. Сопоставь содержимое логического объекта с локальным файлом
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \
     s3api get-object \
     --bucket s3-course-lesson1 \

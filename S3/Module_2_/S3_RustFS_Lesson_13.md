@@ -69,7 +69,7 @@ SigV4 приводит запрос к согласованному предст
 
 Пусть профиль называется `rustfs`; замени имя своим. Выбери существующий бакет, который пользователь вправе перечислять. Команда только читает список:
 
-```fish
+```bash
 aws --profile rustfs --endpoint-url http://127.0.0.1:9000 \
   s3api list-objects-v2 --bucket s3-course-lesson1 --max-keys 1 \
   --debug 2>sigv4-debug.log
@@ -79,7 +79,7 @@ aws --profile rustfs --endpoint-url http://127.0.0.1:9000 \
 
 Теперь подставь тот же идентификатор и заведомо неверный секрет только для одного процесса:
 
-```fish
+```bash
 env AWS_ACCESS_KEY_ID=(aws configure get aws_access_key_id --profile rustfs) \
   AWS_SECRET_ACCESS_KEY=deliberately-wrong AWS_SESSION_TOKEN= \
   aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 \

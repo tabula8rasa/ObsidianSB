@@ -91,7 +91,7 @@ sequenceDiagram
 
 Все команды ниже выполняй в **каталоге урока 26**, не в каталоге репликации урока 27:
 
-```fish
+```bash
 cd ~/s3-course/lesson-26-cluster
 docker compose ps
 docker compose start node1 node2 node3 node4
@@ -102,7 +102,7 @@ curl -i http://127.0.0.1:9102/health/ready
 
 В этом терминале восстанови реквизиты кластера 26:
 
-```fish
+```bash
 set -gx AWS_ACCESS_KEY_ID (string replace 'RUSTFS_ACCESS_KEY=' '' \
     (grep '^RUSTFS_ACCESS_KEY=' .env))
 set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
@@ -111,7 +111,7 @@ set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
 
 Создай контрольный объект через `node1`:
 
-```fish
+```bash
 printf 'lesson 28: quorum and recovery\n' > lesson28.txt
 aws --endpoint-url http://127.0.0.1:9100 --region us-east-1 \
     s3api put-object --bucket s3-course-cluster26 \
@@ -129,7 +129,7 @@ cmp lesson28.txt before28.txt
 
 Остановим `node4`, оставив S3-вход `node1` и `node2` доступными:
 
-```fish
+```bash
 docker compose stop node4
 curl -i http://127.0.0.1:9100/health
 curl -i http://127.0.0.1:9100/health/ready
@@ -149,7 +149,7 @@ aws --endpoint-url http://127.0.0.1:9100 \
 
 Верни узел:
 
-```fish
+```bash
 docker compose start node4
 docker compose logs --tail=50 node4
 curl -i http://127.0.0.1:9100/health/ready
@@ -159,7 +159,7 @@ curl -i http://127.0.0.1:9100/health/ready
 
 Убедись, что все четыре узла снова работают, затем останови `node3` и `node4`, сохранив клиентский вход `node1`:
 
-```fish
+```bash
 docker compose ps
 docker compose stop node3 node4
 
@@ -181,7 +181,7 @@ aws --endpoint-url http://127.0.0.1:9100 \
 
 Немедленно восстанови исходную конфигурацию:
 
-```fish
+```bash
 docker compose start node3 node4
 docker compose ps
 curl -i http://127.0.0.1:9100/health/ready

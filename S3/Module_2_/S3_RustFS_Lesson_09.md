@@ -47,7 +47,7 @@ status: study
 
 Чтобы увидеть механизм, достаточно 12 MiB. В отдельном рабочем каталоге создай файл и две части:
 
-```fish
+```bash
 dd if=/dev/urandom of=source.bin bs=1M count=12 status=none
 split -b 6M source.bin part-
 set EP http://127.0.0.1:9000
@@ -57,7 +57,7 @@ set U (aws --endpoint-url $EP s3api create-multipart-upload --bucket $B --key le
 
 Отправь части и сохрани ответы:
 
-```fish
+```bash
 aws --endpoint-url $EP s3api upload-part --bucket $B --key lesson09/complete.bin --upload-id $U --part-number 1 --body part-aa > response1.json
 aws --endpoint-url $EP s3api upload-part --bucket $B --key lesson09/complete.bin --upload-id $U --part-number 2 --body part-ab > response2.json
 ```
@@ -70,7 +70,7 @@ aws --endpoint-url $EP s3api upload-part --bucket $B --key lesson09/complete.bin
 
 Переноси значение целиком: внутренние кавычки ETag в JSON экранируются. Не вычисляй ETag самостоятельно. Перед завершением проверь через `head-object`, что новый ключ отсутствует; ошибка доступа сама по себе отсутствия не доказывает.
 
-```fish
+```bash
 aws --endpoint-url $EP s3api complete-multipart-upload --bucket $B --key lesson09/complete.bin --upload-id $U --multipart-upload file://parts.json
 aws --endpoint-url $EP s3api get-object --bucket $B --key lesson09/complete.bin downloaded.bin
 cmp source.bin downloaded.bin
@@ -82,7 +82,7 @@ cmp source.bin downloaded.bin
 
 Повтори создание и отправку только первой части с новым ключом `lesson09/aborted.bin`. Сохрани новый `UploadId` в `U`. Затем:
 
-```fish
+```bash
 aws --endpoint-url $EP s3api abort-multipart-upload --bucket $B --key lesson09/aborted.bin --upload-id $U
 ```
 

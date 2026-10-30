@@ -148,7 +148,7 @@ AWS IAM обслуживает множество сервисов AWS. RustFS �
 
 В терминале Fish выполни:
 
-```fish
+```bash
 aws configure --profile lesson12-reader
 ```
 
@@ -165,7 +165,7 @@ Default output format: json
 
 Удали переменные окружения Fish, которые могут подменять выбранные credentials:
 
-```fish
+```bash
 set -e AWS_ACCESS_KEY_ID
 set -e AWS_SECRET_ACCESS_KEY
 set -e AWS_SESSION_TOKEN
@@ -178,7 +178,7 @@ set -e AWS_PROFILE
 
 **Тест 1. Скачать объект из разрешённого бакета — успех:**
 
-```fish
+```bash
 aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api get-object --bucket lesson12-private --key hello.txt downloaded.txt
 ```
 
@@ -186,7 +186,7 @@ aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api get-obj
 
 **Тест 2. Скачать объект из другого бакета — отказ:**
 
-```fish
+```bash
 aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api get-object --bucket lesson12-other --key hello.txt forbidden.txt
 ```
 
@@ -194,7 +194,7 @@ aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api get-obj
 
 **Тест 3. Загрузить объект в разрешённый бакет — отказ:**
 
-```fish
+```bash
 aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api put-object --bucket lesson12-private --key test.txt --body downloaded.txt
 ```
 
@@ -202,7 +202,7 @@ aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api put-obj
 
 **Тест 4. Получить список объектов разрешённого бакета — успех:**
 
-```fish
+```bash
 aws --profile lesson12-reader --endpoint-url http://127.0.0.1:9000 s3api list-objects-v2 --bucket lesson12-private
 ```
 

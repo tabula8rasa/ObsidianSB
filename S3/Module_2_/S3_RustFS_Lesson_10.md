@@ -62,7 +62,7 @@ RustFS документирует S3-совместимый интерфейс, 
 
 Используй существующий лабораторный бакет `s3-course-lesson1` и настроенные реквизиты CLI. Выполни:
 
-```fish
+```bash
 printf 'Integrity check\n' > integrity.txt
 md5sum integrity.txt
 sha256sum integrity.txt

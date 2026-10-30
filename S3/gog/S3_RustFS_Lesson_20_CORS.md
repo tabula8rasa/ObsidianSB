@@ -74,7 +74,7 @@ RUSTFS_CORS_ALLOWED_ORIGINS: "http://localhost:3000"
 
 Примени изменение:
 
-```fish
+```bash
 docker compose up -d
 ```
 
@@ -84,21 +84,21 @@ docker compose up -d
 
 **Разрешённый origin:**
 
-```fish
+```bash
 curl -i -H 'Origin: http://localhost:3000' \
   http://127.0.0.1:9000/
 ```
 
 **Не включённый в список origin:**
 
-```fish
+```bash
 curl -i -H 'Origin: http://localhost:4000' \
   http://127.0.0.1:9000/
 ```
 
 Сравни `Access-Control-Allow-Origin` и не путай его с кодом S3 (`403 AccessDenied` здесь допустим). Для проверки preflight:
 
-```fish
+```bash
 curl -i -X OPTIONS http://127.0.0.1:9000/lesson20/example.txt \
   -H 'Origin: http://localhost:3000' \
   -H 'Access-Control-Request-Method: PUT' \

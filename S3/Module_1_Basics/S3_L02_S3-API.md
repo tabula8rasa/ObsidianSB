@@ -35,7 +35,7 @@ AWS CLI → метод + URL + заголовки + подпись SigV4
 
 Установи AWS CLI v2, если он отсутствует, и создай профиль из реквизитов `.env` урока 01:
 
-```fish
+```bash
 aws --version
 aws configure --profile rustfs-lab
 aws configure set s3.addressing_style path --profile rustfs-lab
@@ -45,14 +45,14 @@ aws configure set s3.addressing_style path --profile rustfs-lab
 
 Чтобы в следующих уроках не повторять длинный набор флагов, создай функцию `fish`:
 
-```fish
+```bash
 function s3
     aws --profile rustfs-lab --endpoint-url http://127.0.0.1:9000 $argv
 end
 funcsave s3
 ```
 
-```fish
+```bash
 s3 s3api list-buckets
 s3 s3api list-buckets --query 'Buckets[].Name' --output text
 s3 s3 ls

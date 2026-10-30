@@ -80,7 +80,7 @@ for operation in ("put_object", "get_object"):
 
 Запусти `python presign.py`. Первую строку используй как PUT_URL, вторую — как GET_URL; вставляй адреса целиком внутри кавычек:
 
-```fish
+```bash
 printf 'Temporary access\n' > upload.txt
 set PUT_URL 'вставь первую ссылку'
 set GET_URL 'вставь вторую ссылку'

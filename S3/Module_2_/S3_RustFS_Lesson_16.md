@@ -72,7 +72,7 @@ AWS предоставляет настройки CORS бакета. RustFS та
 
 Используй отдельный тестовый бакет `lesson16`. Подготовь профиль AWS CLI и `hello.txt`. Зафиксируй версию RustFS.
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 s3api put-object --bucket lesson16 --key encrypted.txt --body hello.txt --server-side-encryption AES256
 ```
 
@@ -80,7 +80,7 @@ aws --endpoint-url http://127.0.0.1:9000 s3api put-object --bucket lesson16 --ke
 
 Для CORS добавь в `environment` Compose значение `RUSTFS_CORS_ALLOWED_ORIGINS: "http://localhost:3000"`, примени изменение через `docker compose up -d`, затем проверь:
 
-```fish
+```bash
 curl -i -H 'Origin: http://localhost:3000' http://127.0.0.1:9000/
 ```
 

@@ -39,7 +39,7 @@ status: study
 
 **1. Подготовь файл и начни сессию** (`fish`; AWS CLI уже настроен):
 
-```fish
+```bash
 dd if=/dev/urandom of=source.bin bs=1M count=12 status=none
 split -b 6M source.bin part-
 set EP http://127.0.0.1:9000
@@ -50,7 +50,7 @@ set U (aws --endpoint-url $EP s3api create-multipart-upload --bucket $B --key $K
 
 **2. Загрузи части, сохрани `ETag`:**
 
-```fish
+```bash
 aws --endpoint-url $EP s3api upload-part --bucket $B --key $K --upload-id $U --part-number 1 --body part-aa > response1.json
 aws --endpoint-url $EP s3api upload-part --bucket $B --key $K --upload-id $U --part-number 2 --body part-ab > response2.json
 ```
@@ -63,7 +63,7 @@ aws --endpoint-url $EP s3api upload-part --bucket $B --key $K --upload-id $U --p
 
 **4. Заверши загрузку и сравни содержимое:**
 
-```fish
+```bash
 aws --endpoint-url $EP s3api complete-multipart-upload --bucket $B --key $K --upload-id $U --multipart-upload file://parts.json
 aws --endpoint-url $EP s3api get-object --bucket $B --key $K downloaded.bin
 cmp source.bin downloaded.bin

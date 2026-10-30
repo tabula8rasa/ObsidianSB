@@ -40,7 +40,7 @@ patents/* → patents-key
 
 Такой выбор реализует приложение при загрузке объекта, указывая нужный `--ssekms-key-id`:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9000 s3api put-object \
   --bucket my-bucket \
   --key finance/report.pdf \

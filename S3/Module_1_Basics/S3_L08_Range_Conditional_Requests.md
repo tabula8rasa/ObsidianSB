@@ -34,7 +34,7 @@ status: study
 
 ## Практика
 
-```fish
+```bash
 printf '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\n' > lesson08.txt
 s3 s3api put-object --bucket s3-course-lesson1 \
   --key lesson08/data.txt --body lesson08.txt
@@ -46,7 +46,7 @@ cmp part08.txt expected08.txt
 
 Получение ETag и условный GET в `fish`:
 
-```fish
+```bash
 set etag (s3 s3api head-object --bucket s3-course-lesson1 \
   --key lesson08/data.txt --query ETag --output text)
 s3 s3api get-object --bucket s3-course-lesson1 \

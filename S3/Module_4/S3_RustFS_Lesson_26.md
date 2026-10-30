@@ -78,7 +78,7 @@ node4 -> /data (volume node4_data) -> host SSD
 
 В терминале `fish`:
 
-```fish
+```bash
 mkdir -p ~/s3-course/lesson-26-cluster
 cd ~/s3-course/lesson-26-cluster
 
@@ -151,7 +151,7 @@ volumes:
 
 ## 6. Практика: запуск, PUT через node1, GET через node2
 
-```fish
+```bash
 docker compose config -q
 docker compose up -d
 docker compose ps
@@ -163,7 +163,7 @@ curl -i http://127.0.0.1:9102/health
 
 Задай временные реквизиты AWS CLI **в этом терминале**:
 
-```fish
+```bash
 set -gx AWS_ACCESS_KEY_ID (string replace 'RUSTFS_ACCESS_KEY=' '' \
     (grep '^RUSTFS_ACCESS_KEY=' .env))
 set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
@@ -172,7 +172,7 @@ set -gx AWS_SECRET_ACCESS_KEY (string replace 'RUSTFS_SECRET_KEY=' '' \
 
 Создай бакет и объект через первый контейнер:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9100 --region us-east-1 \
     s3api create-bucket --bucket s3-course-cluster26
 
@@ -185,7 +185,7 @@ aws --endpoint-url http://127.0.0.1:9100 --region us-east-1 \
 
 Прочитай через **второй** контейнер:
 
-```fish
+```bash
 aws --endpoint-url http://127.0.0.1:9102 --region us-east-1 \
     s3api get-object \
     --bucket s3-course-cluster26 \
@@ -202,7 +202,7 @@ cmp cluster26.txt received26.txt
 
 После успешного PUT/GET останови **только один HTTP-узел**:
 
-```fish
+```bash
 docker compose stop node1
 curl -i http://127.0.0.1:9102/health
 

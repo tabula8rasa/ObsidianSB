@@ -65,7 +65,7 @@ SDK сам формирует и подписывает S3 `PUT`-запрос. *
 
 Создай каталог урока, виртуальное окружение и установи библиотеку (команды для `fish`):
 
-```fish
+```bash
 mkdir -p ~/s3-course/lesson-18
 cd ~/s3-course/lesson-18
 python -m venv .venv
@@ -109,7 +109,7 @@ print("OK: downloaded bytes match")
 
 Запусти:
 
-```fish
+```bash
 python lesson18.py
 ```
 

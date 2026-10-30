@@ -62,7 +62,7 @@ x-amz-server-side-encryption: AES256
 
 **По умолчанию для бакета:** задать правило `SSE-S3`. Оно применяется к **новым записям**, которые не указали собственный режим шифрования. Через клиент `rc`, если он установлен:
 
-```fish
+```bash
 rc bucket encryption set rustfs/lesson17 --mode sse-s3
 rc bucket encryption info rustfs/lesson17
 ```
@@ -73,14 +73,14 @@ rc bucket encryption info rustfs/lesson17
 
 Создай в Console бакет `lesson17` и локальный файл:
 
-```fish
+```bash
 printf 'SSE-S3 test\n' > sse-s3.txt
 set EP http://127.0.0.1:9000
 ```
 
 Если в уроке 16 включён TLS, используй `https://127.0.0.1:9000` и добавь в команды AWS CLI `--ca-bundle tls/rustfs_cert.pem`.
 
-```fish
+```bash
 aws --endpoint-url $EP s3api put-object \
   --bucket lesson17 --key secure.txt --body sse-s3.txt \
   --server-side-encryption AES256
@@ -90,7 +90,7 @@ aws --endpoint-url $EP s3api put-object \
 
 После успешной записи:
 
-```fish
+```bash
 aws --endpoint-url $EP s3api head-object \
   --bucket lesson17 --key secure.txt
 aws --endpoint-url $EP s3api get-object \

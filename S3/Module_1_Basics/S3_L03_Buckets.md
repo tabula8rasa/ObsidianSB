@@ -34,7 +34,7 @@ status: study
 
 Используй сохранённую в уроке 02 команду `s3` (функция `fish`). Не удаляй бакеты предыдущих уроков.
 
-```fish
+```bash
 s3 s3api create-bucket --bucket s3-course-lesson03
 s3 s3api list-buckets --query 'Buckets[].Name'
 s3 s3api head-bucket --bucket s3-course-lesson03
@@ -42,7 +42,7 @@ s3 s3api head-bucket --bucket s3-course-lesson03
 
 Проверь поведение удаления **отдельного** временного бакета:
 
-```fish
+```bash
 s3 s3api create-bucket --bucket s3-course-lesson03-disposable
 printf 'test\n' > temporary.txt
 s3 s3api put-object --bucket s3-course-lesson03-disposable \
