@@ -17,3 +17,5 @@
 
 https://skillry.dev/
 https://www.embla-carousel.com/docs/examples/predefined
+https://loading.dev/
+https://iconoir.com/
