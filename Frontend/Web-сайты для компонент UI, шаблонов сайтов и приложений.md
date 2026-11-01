@@ -27,3 +27,4 @@ https://404.design/
 https://bentogrids.com/
 https://60fps.design/motion
 https://godly.design/
+https://horizonx.so/
