@@ -19,3 +19,11 @@ https://skillry.dev/
 https://www.embla-carousel.com/docs/examples/predefined
 https://loading.dev/
 https://iconoir.com/
+https://supahero.io/
+https://www.navbar.gallery/
+https://www.cta.gallery/
+https://www.footer.design/
+https://404.design/
+https://bentogrids.com/
+https://60fps.design/motion
+https://godly.design/
